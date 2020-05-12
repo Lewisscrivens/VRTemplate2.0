@@ -194,27 +194,35 @@ public:
 	/**					Input events.                  */
 	/////////////////////////////////////////////////////
 
-	template<bool val> void TriggerLeft() { TriggerLeft(val); }
 	UFUNCTION(Category = "Pawn|Input")
-	void TriggerLeft(bool pressed);
+	void TriggerLeftPressed();
 
-	template<bool val> void TriggerRight() { TriggerRight(val); }
 	UFUNCTION(Category = "Pawn|Input")
-	void TriggerRight(bool pressed);
+	void TriggerLeftReleased();
+
+	UFUNCTION(Category = "Pawn|Input")
+	void TriggerRightPressed();
+
+	UFUNCTION(Category = "Pawn|Input")
+	void TriggerRightReleased();
+
+	UFUNCTION(Category = "Pawn|Input")
+	void ThumbLeftPressed();
+
+	UFUNCTION(Category = "Pawn|Input")
+	void ThumbLeftReleased();
+
+	UFUNCTION(Category = "Pawn|Input")
+	void ThumbRightPressed();
+
+	UFUNCTION(Category = "Pawn|Input")
+	void ThumbRightReleased();
 
 	UFUNCTION(Category = "Pawn|Input")
 	void SqueezeL(float val);
 
 	UFUNCTION(Category = "Pawn|Input")
 	void SqueezeR(float val);
-
-	template<bool val> void ThumbLeft() { ThumbLeft(val); }
-	UFUNCTION(Category = "Pawn|Input")
-	void ThumbLeft(bool pressed);
-
-	template<bool val> void ThumbRight() { ThumbRight(val); }
-	UFUNCTION(Category = "Pawn|Input")
-	void ThumbRight(bool pressed);
 
 	UFUNCTION(Category = "Pawn|Input")
 	void ThumbstickLeftX(float val);

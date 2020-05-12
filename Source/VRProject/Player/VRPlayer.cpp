@@ -198,15 +198,17 @@ void AVRPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	// Player pawn input bindings.
-	PlayerInputComponent->BindAction("TriggerLeft", IE_Pressed, this, &AVRPlayer::TriggerLeft<true>);
-	PlayerInputComponent->BindAction("TriggerLeft", IE_Released, this, &AVRPlayer::TriggerLeft<false>);
-	PlayerInputComponent->BindAction("TriggerRight", IE_Pressed, this, &AVRPlayer::TriggerRight<true>);
-	PlayerInputComponent->BindAction("TriggerRight", IE_Released, this, &AVRPlayer::TriggerRight<false>);
-	PlayerInputComponent->BindAction("ThumbMiddleL", IE_Pressed, this, &AVRPlayer::ThumbLeft<true>);
-	PlayerInputComponent->BindAction("ThumbMiddleL", IE_Released, this, &AVRPlayer::ThumbLeft<false>);
-	PlayerInputComponent->BindAction("ThumbMiddleR", IE_Pressed, this, &AVRPlayer::ThumbRight<true>);
-	PlayerInputComponent->BindAction("ThumbMiddleR", IE_Released, this, &AVRPlayer::ThumbRight<false>);
+	// Player pawn action bindings.
+	PlayerInputComponent->BindAction("TriggerLeft", IE_Pressed, this, &AVRPlayer::TriggerLeftPressed);
+	PlayerInputComponent->BindAction("TriggerLeft", IE_Released, this, &AVRPlayer::TriggerLeftReleased);
+	PlayerInputComponent->BindAction("TriggerRight", IE_Pressed, this, &AVRPlayer::TriggerRightPressed);
+	PlayerInputComponent->BindAction("TriggerRight", IE_Released, this, &AVRPlayer::TriggerRightReleased);
+	PlayerInputComponent->BindAction("ThumbMiddleL", IE_Pressed, this, &AVRPlayer::ThumbLeftPressed);
+	PlayerInputComponent->BindAction("ThumbMiddleL", IE_Released, this, &AVRPlayer::ThumbLeftReleased);
+	PlayerInputComponent->BindAction("ThumbMiddleR", IE_Pressed, this, &AVRPlayer::ThumbRightPressed);
+	PlayerInputComponent->BindAction("ThumbMiddleR", IE_Released, this, &AVRPlayer::ThumbRightReleased);
+
+	// Player pawn axis bindings.
 	PlayerInputComponent->BindAxis("TriggerL", this, &AVRPlayer::TriggerLeftAxis);
 	PlayerInputComponent->BindAxis("TriggerR", this, &AVRPlayer::TriggerRightAxis);
 	PlayerInputComponent->BindAxis("ThumbstickLeft_X", this, &AVRPlayer::ThumbstickLeftX);
@@ -217,21 +219,157 @@ void AVRPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("SqueezeR", this, &AVRPlayer::SqueezeR);
 }
 
-void AVRPlayer::TriggerLeft(bool pressed)
+void AVRPlayer::TriggerLeftPressed()
 {
 	if (leftHand && leftHand->active)
 	{
-		if (pressed) leftHand->TriggerPressed();
-		else leftHand->TriggerReleased();
+		leftHand->TriggerPressed();
 	}
 }
 
-void AVRPlayer::TriggerRight(bool pressed)
+void AVRPlayer::TriggerLeftReleased()
+{
+	if (leftHand && leftHand->active)
+	{
+		leftHand->TriggerReleased();
+	}
+}
+
+void AVRPlayer::TriggerRightPressed()
 {
 	if (rightHand && rightHand->active)
 	{
-		if (pressed) rightHand->TriggerPressed();
-		else rightHand->TriggerReleased();
+		rightHand->TriggerPressed();
+	}
+}
+
+void AVRPlayer::TriggerRightReleased()
+{
+	if (rightHand && rightHand->active)
+	{
+		rightHand->TriggerReleased();
+	}
+}
+
+void AVRPlayer::ThumbLeftPressed()
+{
+	if (leftHand)
+	{
+		// If gripping use the interaction functionality.
+		if (leftHand->objectInHand) leftHand->Interact(true);
+		// Otherwise activate current movement mode.
+		else if (movement->canMove && leftHand->active)
+		{
+			bool moveEnabled = false;
+			switch (movement->currentMovementMode)
+			{
+			case EVRMovementMode::Developer:
+			case EVRMovementMode::Teleport:
+			case EVRMovementMode::SwingingArms:
+			case EVRMovementMode::Lean:
+				moveEnabled = true;
+				break;
+			}
+
+			// Move if enabled.
+			if (moveEnabled)
+			{
+				movingHand = leftHand;
+			}
+		}
+	}
+}
+
+void AVRPlayer::ThumbLeftReleased()
+{
+	if (leftHand)
+	{
+		// If gripping use the interaction functionality.
+		if (leftHand->objectInHand) leftHand->Interact(false);
+		// Otherwise activate current movement mode.
+		else if (movement->canMove && leftHand->active)
+		{
+			bool moveEnabled = false;
+			switch (movement->currentMovementMode)
+			{
+			case EVRMovementMode::Developer:
+			case EVRMovementMode::Teleport:
+			case EVRMovementMode::SwingingArms:
+			case EVRMovementMode::Lean:
+				moveEnabled = true;
+				break;
+			}
+
+			// Stop moving if moving is enabled.
+			if (moveEnabled)
+			{
+				if (movingHand && movingHand == leftHand)
+				{
+					movingHand = nullptr;
+				}
+			}
+		}
+	}
+}
+
+void AVRPlayer::ThumbRightPressed()
+{
+	if (rightHand)
+	{
+		// If the right hand is locked to or grabbing something.
+		if (rightHand->objectInHand) rightHand->Interact(true);
+		// Otherwise activate current movement mode.
+		else if (movement->canMove && rightHand->active)
+		{
+			bool moveEnabled = false;
+			switch (movement->currentMovementMode)
+			{
+			case EVRMovementMode::Developer:
+			case EVRMovementMode::Teleport:
+			case EVRMovementMode::SwingingArms:
+			case EVRMovementMode::Lean:
+				moveEnabled = true;
+				break;
+			}
+
+			// Move if enabled.
+			if (moveEnabled)
+			{
+				movingHand = rightHand;
+			}
+		}
+	}
+}
+
+void AVRPlayer::ThumbRightReleased()
+{
+	if (rightHand)
+	{
+		// If the right hand is locked to or grabbing something.
+		if (rightHand->objectInHand) rightHand->Interact(false);
+		// Otherwise activate current movement mode.
+		else if (movement->canMove && rightHand->active)
+		{
+			bool moveEnabled = false;
+			switch (movement->currentMovementMode)
+			{
+			case EVRMovementMode::Developer:
+			case EVRMovementMode::Teleport:
+			case EVRMovementMode::SwingingArms:
+			case EVRMovementMode::Lean:
+				moveEnabled = true;
+				break;
+			}
+
+			// Stop moving if moving is enabled.
+			if (moveEnabled)
+			{
+				if (movingHand && movingHand == rightHand)
+				{
+					movingHand = nullptr;
+				}
+			}
+		}
 	}
 }
 
@@ -245,72 +383,13 @@ void AVRPlayer::SqueezeR(float val)
 	if (rightHand && rightHand->active) rightHand->Squeeze(val);
 }
 
-void AVRPlayer::ThumbLeft(bool pressed)
-{
-	if (leftHand)
-	{
-		// If gripping use the interaction functionality.
-		if (leftHand->objectInHand) leftHand->Interact(pressed);
- 		// Otherwise activate current movement mode.
- 		else if (movement->canMove && leftHand->active)
- 		{
-			bool moveEnabled = false;
-			switch (movement->currentMovementMode)
-			{
-			case EVRMovementMode::Developer:
-			case EVRMovementMode::Teleport:
-			case EVRMovementMode::SwingingArms:
-			case EVRMovementMode::Lean:
-				moveEnabled = true;
-				break;
-			}
-
-			// Move if enabled.
-			if (moveEnabled)
-			{
-				if (pressed) movingHand = leftHand;
-				else if (movingHand && movingHand == leftHand) movingHand = nullptr;
-			}
- 		}
-	}
-}
-
-void AVRPlayer::ThumbRight(bool pressed)
-{
-	if (rightHand)
-	{
-		// If the right hand is locked to or grabbing something.
-		if (rightHand->objectInHand) rightHand->Interact(pressed);
- 		// Otherwise activate current movement mode.
- 		else if (movement->canMove && rightHand->active)
- 		{
-			bool moveEnabled = false;
-			switch (movement->currentMovementMode)
-			{
-			case EVRMovementMode::Developer:
-			case EVRMovementMode::Teleport:
-			case EVRMovementMode::SwingingArms:
-			case EVRMovementMode::Lean:
-				moveEnabled = true;
-				break;
-			}
- 			
-			// Move if enabled.
-			if (moveEnabled)
-			{
-				if (pressed) movingHand = rightHand;
-				else if (movingHand && movingHand == rightHand) movingHand = nullptr;
-			}
- 		}
-	}
-}
-
 void AVRPlayer::ThumbstickLeftX(float val)
 {
 	if (leftHand && leftHand->active)
 	{
 		// Update the value.
 		leftHand->thumbstick.X = val;
+		if (val == 0.0f) return;
 
 		// Depending on the current movement mode allow thumbstick to move player.
 		bool moveEnabled = false;
@@ -347,6 +426,7 @@ void AVRPlayer::ThumbstickLeftY(float val)
 	{
 		// Update the value.
 		leftHand->thumbstick.Y = val;
+		if (val == 0.0f) return;
 
 		// Depending on the current movement mode allow thumbstick to move player.
 		bool moveEnabled = false;
@@ -383,6 +463,7 @@ void AVRPlayer::ThumbstickRightX(float val)
 	{
 		// Update the value.
 		rightHand->thumbstick.X = val;
+		if (val == 0.0f) return;
 
 		// Depending on the current movement mode allow thumbstick to move player.
 		bool moveEnabled = false;
@@ -419,6 +500,7 @@ void AVRPlayer::ThumbstickRightY(float val)
 	{
 		// Update the value.
 		rightHand->thumbstick.Y = val;
+		if (val == 0.0f) return;
 
 		// Depending on the current movement mode allow thumbstick to move player.
 		bool moveEnabled = false;
