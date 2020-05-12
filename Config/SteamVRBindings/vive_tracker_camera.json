@@ -1,6 +1,7 @@
 {
 	"name": "Default bindings for Vive Trackers",
 	"controller_type": "vive_tracker_camera",
+	"last_edited_by": "UnrealEngine",
 	"bindings":
 	{
 		"/actions/main":
@@ -50,5 +51,5 @@
 			]
 		}
 	},
-	"description": "VRProject"
+	"description": "VRTemplate2.0-13144385"
 }

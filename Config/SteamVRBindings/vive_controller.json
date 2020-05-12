@@ -1,6 +1,7 @@
 {
-	"name": "Default bindings for Vive Controllers",
+	"name": "Default bindings for Vive",
 	"controller_type": "vive_controller",
+	"last_edited_by": "UnrealEngine",
 	"bindings":
 	{
 		"/actions/main":
@@ -39,5 +40,5 @@
 			]
 		}
 	},
-	"description": "VRProject"
+	"description": "VRTemplate2.0-13144385"
 }

@@ -1,6 +1,7 @@
 {
-	"name": "Default bindings for HTC Cosmos Controllers",
+	"name": "Default bindings for Cosmos",
 	"controller_type": "vive_cosmos_controller",
+	"last_edited_by": "UnrealEngine",
 	"bindings":
 	{
 		"/actions/main":
@@ -39,5 +40,5 @@
 			]
 		}
 	},
-	"description": "VRProject"
+	"description": "VRTemplate2.0-13144385"
 }

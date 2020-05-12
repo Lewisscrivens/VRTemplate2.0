@@ -1,11 +1,123 @@
 {
-	"name": "Default bindings for Index Controllers",
+	"name": "Default bindings for ValveIndex",
 	"controller_type": "knuckles",
+	"last_edited_by": "UnrealEngine",
 	"bindings":
 	{
 		"/actions/main":
 		{
-			"sources": [],
+			"sources": [
+				{
+					"mode": "trigger",
+					"path": "/user/hand/left/input/trigger",
+					"inputs":
+					{
+						"click":
+						{
+							"output": "/actions/main/in/TriggerLeft"
+						}
+					}
+				},
+				{
+					"mode": "trigger",
+					"path": "/user/hand/right/input/trigger",
+					"inputs":
+					{
+						"click":
+						{
+							"output": "/actions/main/in/TriggerRight"
+						}
+					}
+				},
+				{
+					"mode": "button",
+					"path": "/user/hand/left/input/a",
+					"inputs":
+					{
+						"click":
+						{
+							"output": "/actions/main/in/ThumbMiddleL"
+						}
+					}
+				},
+				{
+					"mode": "button",
+					"path": "/user/hand/right/input/a",
+					"inputs":
+					{
+						"click":
+						{
+							"output": "/actions/main/in/ThumbMiddleR"
+						}
+					}
+				},
+				{
+					"mode": "joystick",
+					"path": "/user/hand/left/input/thumbstick",
+					"inputs":
+					{
+						"position":
+						{
+							"output": "/actions/main/in/ThumbstickLeft_X,ThumbstickLeft_Y X Y_axis2d"
+						}
+					}
+				},
+				{
+					"mode": "joystick",
+					"path": "/user/hand/right/input/thumbstick",
+					"inputs":
+					{
+						"position":
+						{
+							"output": "/actions/main/in/ThumbstickRight_X,ThumbstickRight_Y X Y_axis2d"
+						}
+					}
+				},
+				{
+					"mode": "trigger",
+					"path": "/user/hand/left/input/trigger",
+					"inputs":
+					{
+						"pull":
+						{
+							"output": "/actions/main/in/TriggerL axis"
+						}
+					}
+				},
+				{
+					"mode": "trigger",
+					"path": "/user/hand/right/input/trigger",
+					"inputs":
+					{
+						"pull":
+						{
+							"output": "/actions/main/in/TriggerR axis"
+						}
+					}
+				},
+				{
+					"mode": "force_sensor",
+					"path": "/user/hand/left/input/grip",
+					"inputs":
+					{
+						"force":
+						{
+							"output": "/actions/main/in/SqueezeL axis"
+						}
+					}
+				},
+				{
+					"mode": "force_sensor",
+					"path": "/user/hand/right/input/grip",
+					"inputs":
+					{
+						"force":
+						{
+							"output": "/actions/main/in/SqueezeR axis"
+						}
+					}
+				}
+			],
 			"poses": [
 				{
 					"output": "/actions/main/in/controllerleft",
@@ -39,5 +151,5 @@
 			]
 		}
 	},
-	"description": "VRProject"
+	"description": "VRTemplate2.0-13144385"
 }

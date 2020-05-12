@@ -1,6 +1,7 @@
 {
-	"name": "Default bindings for Oculus Touch",
+	"name": "Default bindings for OculusTouch",
 	"controller_type": "oculus_touch",
+	"last_edited_by": "UnrealEngine",
 	"bindings":
 	{
 		"/actions/main":
@@ -39,5 +40,5 @@
 			]
 		}
 	},
-	"description": "VRProject"
+	"description": "VRTemplate2.0-13144385"
 }

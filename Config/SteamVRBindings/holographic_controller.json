@@ -1,6 +1,7 @@
 {
-	"name": "Default bindings for Holographic Controller",
+	"name": "Default bindings for MixedReality",
 	"controller_type": "holographic_controller",
+	"last_edited_by": "UnrealEngine",
 	"bindings":
 	{
 		"/actions/main":
@@ -39,5 +40,5 @@
 			]
 		}
 	},
-	"description": "VRProject"
+	"description": "VRTemplate2.0-13144385"
 }

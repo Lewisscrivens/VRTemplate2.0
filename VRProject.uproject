@@ -1,29 +1,20 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "4.23",
+	"EngineAssociation": "4.25",
 	"Category": "",
 	"Description": "",
 	"Modules": [
 		{
 			"Name": "VRProject",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine"
+			]
 		}
 	],
-	"Plugins": [
-		{
-			"Name": "HoudiniEngine",
-			"Enabled": false
-		},
-		{
-			"Name": "SteamVRInput",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/401605a650e64a8fa3c0f45838a6357d"
-		},
-		{
-			"Name": "Substance",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/2f6439c2f9584f49809d9b13b16c2ba4"
-		}
+	"Plugins": [],
+	"TargetPlatforms": [
+		"WindowsNoEditor"
 	]
 }
