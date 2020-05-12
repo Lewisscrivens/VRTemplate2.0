@@ -51,8 +51,10 @@ AVRHand::AVRHand()
 	handRoot->SetupAttachment(controller);
 
 	// Skeletal mesh component for the hand model. Default setup.
-	handPhysics = CreateDefaultSubobject<USkeletalMeshComponent>("handBox");
+	handPhysics = CreateDefaultSubobject<UBoxComponent>("handBox");
 	handPhysics->SetCollisionProfileName("PhysicsActor");
+	handPhysics->SetGenerateOverlapEvents(true);
+	handPhysics->SetNotifyRigidBodyCollision(true);
 	handPhysics->SetupAttachment(handRoot);
 	handSkel = CreateDefaultSubobject<USkeletalMeshComponent>("handSkel");
 	handSkel->SetCollisionProfileName("Hand");

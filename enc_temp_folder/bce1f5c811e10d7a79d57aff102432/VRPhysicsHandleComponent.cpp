@@ -252,16 +252,12 @@ void UVRPhysicsHandleComponent::CreateJoint(UPrimitiveComponent* comp, UPrimitiv
 
 void UVRPhysicsHandleComponent::TeleportGrabbedComp()
 {
-    // Only needs to be ran on something that has a soft linear constraint as the physics system interpolates the bodies velocity off the movement...
-    // NOTE: Only way to do this as the only physX option for soft drives is PxD6JointDriveFlag::eACCELERATION which takes acceleration from movement/setworldlocation into account.
 	if (grabbedComponent && targetComponent && handleData.softLinearConstraint)
 	{
 		// Reposition.
 		FVector newPos = targetComponent->GetComponentTransform().TransformPositionNoScale(grabbedOffset.GetLocation());
 		FRotator newRot = targetComponent->GetComponentTransform().TransformRotation(grabbedOffset.GetRotation()).Rotator();
 
-        // Set drive to be rigid while moving and give enough time for the physics system to forget the old acceleration before 
-        // re-enabling the soft constraint drive.
         ToggleDrive(false, false);
 		grabbedComponent->SetWorldLocationAndRotation(newPos, newRot, false, nullptr, ETeleportType::TeleportPhysics);
         FTimerHandle timerHandle;

@@ -61,7 +61,7 @@ public:
 
 	/** Hand simulated point in space for the handSkel to be attached to. */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
-	USkeletalMeshComponent* handPhysics;
+	UBoxComponent* handPhysics;
 
 	/** Pointer to the hand skeletal mesh component from the player controller pawn. Set in BP. */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
