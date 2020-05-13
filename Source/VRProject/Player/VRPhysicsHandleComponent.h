@@ -145,6 +145,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PhysicsHandle")
 	FName grabbedBoneName;
 
+	/** Should reposition the grabbed component after it goes over the repositionDistance from its target offset location/rotation. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PhysicsHandle")
+	bool reposition;
+
+	/** If repositioning is enabled the distance that the grabbed object can get from the target offset before its teleported back to position as long as there
+	  * is no blocking collision at the target offset location/rotation... */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PhysicsHandle", meta = (EditCondition = "reposition"))
+	float repositionDistance;
+
 	/** Should use the target component to update the target location. (Needs to be done in tick.) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PhysicsHandle")
 	bool updateTargetRotation;
@@ -275,6 +284,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
 	FTransform GetTargetOffset();
 
+	/** Adjust target offset post grab. */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
+	void SetTargetOffset(FTransform& newOffset);
+
+	/** Adjust target offset post grab by adding an amount to the original offset. */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
+	void AddExtraOffset(FVector& newOffset);
+
 	/** Enable or disable the current joints drive.
 	 * @Param linearDrive, Enable/Disable the linear drive of the current joint of this handle.
 	 * @Param angularDrive, Enable/Disable the angular drive of the current joint of this handle.*/
@@ -316,11 +333,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
 	void TeleportGrabbedComp();
 
+	/** Reposition the physics grabbed component in the world when the distance from target becomes too great.
+	  * NOTE: Prevents handled components from getting stuck behind world objects... */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
+	void UpdateRepositionCheck();
+
+	/** Get the grabbed component target position and rotation for where its trying to position itself using the physics handle. */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
+	FTransform GetGrabbedTargetTransform();
+
 protected:
 
 	physx::PxD6Joint* joint; /** Pointer to PhysX joint created when a component is grabbed. */
 	physx::PxRigidDynamic* targetActor; /** Pointer to target actor created in the create joint function to constrain a given component to. */
 	FTransform targetOffset; /** Relative offset transform from the target component that the constraint was initialized / positioned. */
+	FVector extraOffset; 
 	FTransform grabbedOffset;
 	bool rotationConstraint; /** Is the rotation constraint currently active. */
 	FPhysicsHandleData originalData; /** Original physics handle data of this class, in case its replaced on creating the constraint. */

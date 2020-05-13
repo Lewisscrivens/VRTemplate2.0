@@ -60,6 +60,7 @@ AVRPlayer::AVRPlayer()
 
 	// Initialise the physics handles.
 	headHandle = CreateDefaultSubobject<UVRPhysicsHandleComponent>("HeadHandle");
+	headHandle->reposition = true;
 
 	// Setup vignette.
 	vignette = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Vignette"));
@@ -83,6 +84,8 @@ AVRPlayer::AVRPlayer()
 	tracked = false;
 	collisionEnabled = false;
 	movementLocked = false;
+	thumbL = false;
+	thumbR = false;
 	debug = false;
 }
 
@@ -187,7 +190,10 @@ void AVRPlayer::PostUpdateTick(float DeltaTime)
 
 void AVRPlayer::Teleported()
 {
+	// Move head collider to new location and re-enable collision once the head is no 
+	// longer inside of anything at the new teleported location.
 	headHandle->TeleportGrabbedComp();
+	ResetCollision();
 
 	// Teleport hands and objects in the hands.
 	if (leftHand) leftHand->TeleportHand();
@@ -275,6 +281,7 @@ void AVRPlayer::ThumbLeftPressed()
 			if (moveEnabled)
 			{
 				movingHand = leftHand;
+				thumbL = true;
 			}
 		}
 	}
@@ -306,6 +313,7 @@ void AVRPlayer::ThumbLeftReleased()
 				if (movingHand && movingHand == leftHand)
 				{
 					movingHand = nullptr;
+					thumbL = false;
 				}
 			}
 		}
@@ -336,6 +344,7 @@ void AVRPlayer::ThumbRightPressed()
 			if (moveEnabled)
 			{
 				movingHand = rightHand;
+				thumbR = true;
 			}
 		}
 	}
@@ -367,6 +376,7 @@ void AVRPlayer::ThumbRightReleased()
 				if (movingHand && movingHand == rightHand)
 				{
 					movingHand = nullptr;
+					thumbR = false;
 				}
 			}
 		}
@@ -389,7 +399,7 @@ void AVRPlayer::ThumbstickLeftX(float val)
 	{
 		// Update the value.
 		leftHand->thumbstick.X = val;
-		if (val == 0.0f) return;
+		if (val == 0.0f && thumbL) return;
 
 		// Depending on the current movement mode allow thumbstick to move player.
 		bool moveEnabled = false;
@@ -426,7 +436,7 @@ void AVRPlayer::ThumbstickLeftY(float val)
 	{
 		// Update the value.
 		leftHand->thumbstick.Y = val;
-		if (val == 0.0f) return;
+		if (val == 0.0f && thumbL) return;
 
 		// Depending on the current movement mode allow thumbstick to move player.
 		bool moveEnabled = false;
@@ -463,7 +473,7 @@ void AVRPlayer::ThumbstickRightX(float val)
 	{
 		// Update the value.
 		rightHand->thumbstick.X = val;
-		if (val == 0.0f) return;
+		if (val == 0.0f && thumbR) return;
 
 		// Depending on the current movement mode allow thumbstick to move player.
 		bool moveEnabled = false;
@@ -500,7 +510,7 @@ void AVRPlayer::ThumbstickRightY(float val)
 	{
 		// Update the value.
 		rightHand->thumbstick.Y = val;
-		if (val == 0.0f) return;
+		if (val == 0.0f && thumbR) return;
 
 		// Depending on the current movement mode allow thumbstick to move player.
 		bool moveEnabled = false;
@@ -622,13 +632,19 @@ void AVRPlayer::ActivateAllCollision(bool enable)
 	else UE_LOG(LogVRPlayer, Error, TEXT("One of the hand classes in the VRPawn %s is null. Cannot activate/de-activate collision."));
 }
 
+void AVRPlayer::ResetCollision()
+{
+	ActivateCollision(false);
+	ActivateCollision(true);
+}
+
 void AVRPlayer::ActivateCollision(bool enable)
 {
 	if (enable)
 	{
 		FTimerDelegate timerDel;
 		timerDel.BindUFunction(this, FName("CollisionDelay"));
-		GetWorld()->GetTimerManager().SetTimer(headColDelay, timerDel, 0.01f, true);
+		GetWorld()->GetTimerManager().SetTimer(headColDelay, timerDel, 0.05f, true);
 		collisionEnabled = true;
 	}
 	else
@@ -643,10 +659,8 @@ void AVRPlayer::CollisionDelay()
 {
 	// Check if the given collisionComponent is currently overlapping a blocking physics collision.
 	TArray<UPrimitiveComponent*> overlappingComps;
-	TArray<TEnumAsByte<EObjectTypeQuery>> physicsColliders;
-	physicsColliders.Add(UEngineTypes::ConvertToObjectType(ECC_PhysicsBody));
-	bool overlapping = UKismetSystemLibrary::ComponentOverlapComponents(headCollider, headCollider->GetComponentTransform(), physicsColliders, nullptr, actorsToIgnore, overlappingComps);
-	
+	bool overlapping = UVRFunctionLibrary::ComponentOverlapComponentsByChannel(headCollider, headCollider->GetComponentTransform(), ECC_PhysicsBody, actorsToIgnore, overlappingComps, true);
+
 	// If no longer overlapping re-enable the collision on the head Collider to query and physics.
 	if (!overlapping)
 	{

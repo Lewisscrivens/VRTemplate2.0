@@ -120,6 +120,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hand")
 	bool hideOnGrab;
 
+	/** Distance the hand can get stuck before repositioning occurs. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hand")
+	float repositionDistance;
+
 	/** Is the player grabbing? */
 	UPROPERTY(BlueprintReadOnly, Category = "Hand|CurrentValues")
 	bool grabbing;
@@ -165,6 +169,7 @@ private:
 	FQuat lastHandRotation, currentHandRotation;
 	FTransform originalHandTransform;/** Saved original hand transform at the end of initialization. */	
 	FTimerHandle colTimerHandle, controllerColTimerHandle; /** Timer handle to store a reference to the Collider timer that loops the function CollisionDelay to check for overlapping collision. */
+	FVector originalSkelOffset;
 
 	int distanceFrameCount; /** How many frames has the hand been too far away from the grabbed object. */
 	float currentHapticIntesity; /** The current playing haptic effects intensity for this hand classes controller. */
@@ -192,6 +197,9 @@ private:
 
 	/** Update the hand animation variables. */
 	void UpdateAnimationInstance();
+
+	/** Handle resizing physics collision based off hand being closed. */
+	void UpdatePhysicalCollider();
 
 public:
 
@@ -254,12 +262,15 @@ public:
 
 	/** Toggle collision of all components for the hand to ignore other actor collisions.
 	 * @Param open, open = activate collision and !open = ignore collisions. */
-	void ActivateCollision(bool open, float openDelay = -1.0f);
+	void ActivateCollision(bool enable, float enableDelay = -1.0f);
 
 	/** Reset the given VR physics handle to its default properties. 
 	 * @Param reset handle back to its default values. */
 	UFUNCTION(BlueprintCallable, Category = "Hands")
 	void ResetHandle(UVRPhysicsHandleComponent* handleToReset);
+
+	/** Disables all collision on physics bodies in the hand, then starts querying the scene and will enable collision once the physics bodies are not overlapping with anything... */
+	void ResetCollision();
 
 	/** Play the given feedback for the pawn.
 	 * @Param feedback, the feedback effect to use, if left null this function will use the defaultFeedback in the pawn class.

@@ -50,31 +50,36 @@ AVRHand::AVRHand()
 	handRoot = CreateDefaultSubobject<USceneComponent>(TEXT("HandRoot"));
 	handRoot->SetupAttachment(controller);
 
-	// Skeletal mesh component for the hand model. Default setup.
+	// Setup hand physics. Default setup.
 	handPhysics = CreateDefaultSubobject<UBoxComponent>("handBox");
 	handPhysics->SetCollisionProfileName("PhysicsActor");
 	handPhysics->SetGenerateOverlapEvents(true);
 	handPhysics->SetNotifyRigidBodyCollision(true);
 	handPhysics->SetupAttachment(handRoot);
+	handPhysics->SetRelativeTransform(FTransform(FRotator(-20.0f, 0.0f, 0.0f), FVector(-7.5f, -0.4f, -1.3f), FVector(1.0f, 1.0f, 1.0f)));
+	handPhysics->SetBoxExtent(FVector(9.5f, 2.9f, 5.6f));
+
+	// Skeletal mesh component for the hand model. Default setup.
 	handSkel = CreateDefaultSubobject<USkeletalMeshComponent>("handSkel");
 	handSkel->SetCollisionProfileName("Hand");
 	handSkel->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	handSkel->SetupAttachment(handPhysics);
 	handSkel->SetRenderCustomDepth(true);
 	handSkel->SetGenerateOverlapEvents(true);
-	handSkel->SetCustomDepthStencilValue(1); // Custom stencil mask material for showing hands through objects.
-	handSkel->SetRelativeTransform(FTransform(FRotator(-20.0f, 0.0f, 0.0f), FVector(-18.0f, 0.0f, 0.0f), FVector(0.27f, 0.27f, 0.27f)));
+	handSkel->SetCustomDepthStencilValue(1);
+	handSkel->SetRelativeTransform(FTransform(FRotator(-1.0f, 0.0f, 0.0f), FVector(-10.4f, 0.45f, -0.8f), FVector(0.27f, 0.27f, 0.27f)));
 
 	// Collider to find interactables. Default setup.
 	grabCollider = CreateDefaultSubobject<UBoxComponent>("GrabCollider");
 	grabCollider->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	grabCollider->SetCollisionProfileName(FName("HandOverlap"));
-	grabCollider->SetupAttachment(handRoot);
-	grabCollider->SetRelativeTransform(FTransform(FRotator(-24.0f, 0.0f, 0.0f), FVector(-7.0f, 3.0f, -3.1f), FVector(1.0f, 1.0f, 1.0f)));
+	grabCollider->SetupAttachment(handPhysics);
+	grabCollider->SetRelativeLocation(FVector(1.6f, -2.5f, 0.0f));
 	grabCollider->SetBoxExtent(FVector(8.0f, 2.3f, 5.0f));
 
 	// Initialise the physics handles.
 	handHandle = CreateDefaultSubobject<UVRPhysicsHandleComponent>("PhysicsHandle");
+	handHandle->reposition = true;
 
 	// Setup widget interaction components.
 	widgetOverlap = CreateDefaultSubobject<USphereComponent>("WidgetOverlap");
@@ -98,6 +103,7 @@ AVRHand::AVRHand()
 	movementTarget = CreateDefaultSubobject<USceneComponent>("MovementTarget");
 	movementTarget->SetMobility(EComponentMobility::Movable);
 	movementTarget->SetupAttachment(handSkel);
+	movementTarget->SetRelativeLocation(FVector(30.0f, -20.0f, 0.0f));
 
 	// Initialise default variables.
 	handEnum = EControllerHand::Left;
@@ -114,6 +120,7 @@ AVRHand::AVRHand()
 	debug = false;
 	devModeEnabled = false;
 	devModeCurlAlpha = 0.0f;
+	repositionDistance = 18.0f;
 }
 
 void AVRHand::BeginPlay()
@@ -148,6 +155,9 @@ void AVRHand::SetupHand(AVRHand* oppositeHand, AVRPlayer* playerRef, bool dev)
 
 	// Save the original transform of the hand for calculating offsets.
 	originalHandTransform = controller->GetComponentTransform();
+
+	// Save original information about positions and scales of hand components.
+	originalSkelOffset = handSkel->GetRelativeLocation();
 
 	// Set up the controller offsets for the current type of controller selected.
 	if (!devModeEnabled) SetupControllerOffset();
@@ -199,6 +209,9 @@ void AVRHand::Tick(float DeltaTime)
 	// Update the animation instance variables for the handSkel.
 	// Handles retrieving finger curls from index controller...
 	UpdateAnimationInstance();
+
+	// Update physics collider checks.
+	UpdatePhysicalCollider();
 
 	// If an object is grabbed by the hand update the relevant functions.
 	if (objectInHand)
@@ -353,7 +366,9 @@ void AVRHand::Squeeze(float howHard)
 
 void AVRHand::TeleportHand()
 {
+	// Move hand to teleported location, also disable collision until new overlaps are ended.
 	handHandle->TeleportGrabbedComp();
+	ResetCollision();
 
 	// Used on components that need re-positioning after a teleportation.
 	if (objectInHand) IInteractionInterface::Execute_Teleported(objectInHand);
@@ -562,10 +577,19 @@ void AVRHand::UpdateAnimationInstance()
 		handAnim->thumbClosingAmount = curls.Thumb;
 		handAnim->pinkyClosingAmount = curls.Pinky;
 		currentCurls = curls;
-
-		// Log finger curls...
-		// UE_LOG(LogHand, Warning, TEXT("CURLS:  %f, %f, %f, %f, %f"), curls.Index, curls.Middle, curls.Pinky, curls.Ring, curls.Thumb);
 	}
+}
+
+void AVRHand::UpdatePhysicalCollider()
+{
+	// Update the boxes extent and positioning for when the hand is closed or opened. 
+	// NOTE: This is overcomplicated because of the way the handskel is attached to the physics box.
+	float alpha = (currentCurls.Index + currentCurls.Middle + currentCurls.Pinky + currentCurls.Ring + currentCurls.Thumb) / 5.0f;
+	float grabExtentX = FMath::Lerp(9.5f, 4.0f, alpha);
+	handPhysics->SetBoxExtent(FVector(grabExtentX, 2.9f, 5.6f));
+	FVector newOffset = handPhysics->GetForwardVector() * (alpha * -4.0f);
+	handHandle->AddExtraOffset(newOffset);
+	handSkel->SetRelativeLocation(originalSkelOffset +  FVector(alpha * 4.0f, 0.0f, 0.0f));
 }
 
 void AVRHand::ResetHandle(UVRPhysicsHandleComponent* handleToReset)
@@ -575,16 +599,22 @@ void AVRHand::ResetHandle(UVRPhysicsHandleComponent* handleToReset)
 	handleToReset->ResetJoint();
 }
 
-void AVRHand::ActivateCollision(bool open, float openDelay)
+void AVRHand::ResetCollision()
+{
+	ActivateCollision(false);
+	ActivateCollision(true);
+}
+
+void AVRHand::ActivateCollision(bool enable, float enableDelay)
 {
 	if (handSkel)
 	{
 		// When the hand is open allow all collision to be enabled after a delay while interactables fall out of the way.
-		if (open)
+		if (enable)
 		{
 			FTimerDelegate timerDel;
 			timerDel.BindUFunction(this, FName("CollisionDelay"));
-			GetWorldTimerManager().SetTimer(colTimerHandle, timerDel, 0.1f, true, openDelay);
+			GetWorldTimerManager().SetTimer(colTimerHandle, timerDel, 0.1f, true, enableDelay);
 			collisionEnabled = true;
 		}
 		// Disable collision while the hand is closed to prevent accidental interactions.

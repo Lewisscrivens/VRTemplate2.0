@@ -119,6 +119,7 @@ public:
 	bool tracked; /** Has the headset ever been tracked. Used to move the player to the start location on begin play and first tracked event for the HMD. */
 	bool devModeActive; /** Local bool to check if dev mode is enabled. */
 	bool movementLocked; /** Can the player initiate movement. */
+	bool thumbL, thumbR; /** Functions to prevent teleporting being disabled by trigger val == 0. */
 
 private:
 
@@ -177,6 +178,10 @@ public:
 	/** Used to quickly activate/deactivate all collision on the player. */
 	UFUNCTION(BlueprintCallable, Category = "Pawn|Collision")
 	void ActivateAllCollision(bool enable);
+
+	/** Used to reset player collision after a set world location event to prevent physics objects getting stuck under or inside other game world objects. */
+	UFUNCTION(BlueprintCallable, Category = "Pawn|Collision")
+	void ResetCollision();
 
 	/** Used to activate/deactivate all collision in the pawn class. */
 	UFUNCTION(BlueprintCallable, Category = "Pawn|Collision")

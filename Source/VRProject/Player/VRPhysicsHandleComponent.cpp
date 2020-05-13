@@ -9,11 +9,12 @@
 #include "PhysXIncludes.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
+#include "VRFunctionLibrary.h"
 
 #if WITH_PHYSX
 #include "PhysXPublic.h"
 #endif 
-#include "Components/BoxComponent.h"
+
 
 DEFINE_LOG_CATEGORY(LogVRHandle);
 
@@ -31,6 +32,8 @@ UVRPhysicsHandleComponent::UVRPhysicsHandleComponent(const FObjectInitializer& O
  	grabbedComponent = nullptr;
  	targetComponent = nullptr;
  	grabbedBoneName = NAME_None;
+    reposition = false;
+    repositionDistance = 18.0f;
 }
 
 void UVRPhysicsHandleComponent::OnUnregister()
@@ -84,14 +87,20 @@ void UVRPhysicsHandleComponent::TickComponent(float DeltaTime, enum ELevelTick T
  	{
  		if (grabOffset)
  		{
- 			targetTransform.SetLocation(targetComponent->GetComponentTransform().TransformPositionNoScale(targetOffset.GetLocation()));
+ 			targetTransform.SetLocation(targetComponent->GetComponentTransform().TransformPositionNoScale(targetOffset.GetLocation()) + extraOffset);
  			if (updateTargetRotation) targetTransform.SetRotation(targetComponent->GetComponentTransform().TransformRotation(targetOffset.GetRotation()));
  		}
  		else
  		{
- 			targetTransform.SetLocation(targetComponent->GetComponentLocation());
+ 			targetTransform.SetLocation(targetComponent->GetComponentLocation() + extraOffset);
  			if (updateTargetRotation) targetTransform.SetRotation(targetComponent->GetComponentRotation().Quaternion());
  		}
+
+        // If reposition is enabled update it.
+        if (reposition)
+        {
+            UpdateRepositionCheck();
+        }
  	}
  
  	// If interpolation has been enabled perform blend between the current transform and the target at the given interpolation speed.
@@ -257,16 +266,42 @@ void UVRPhysicsHandleComponent::TeleportGrabbedComp()
 	if (grabbedComponent && targetComponent && handleData.softLinearConstraint)
 	{
 		// Reposition.
-		FVector newPos = targetComponent->GetComponentTransform().TransformPositionNoScale(grabbedOffset.GetLocation());
-		FRotator newRot = targetComponent->GetComponentTransform().TransformRotation(grabbedOffset.GetRotation()).Rotator();
+        FTransform newPosition = GetGrabbedTargetTransform();
 
         // Set drive to be rigid while moving and give enough time for the physics system to forget the old acceleration before 
         // re-enabling the soft constraint drive.
         ToggleDrive(false, false);
-		grabbedComponent->SetWorldLocationAndRotation(newPos, newRot, false, nullptr, ETeleportType::TeleportPhysics);
+		grabbedComponent->SetWorldLocationAndRotation(newPosition.GetLocation(), newPosition.GetRotation(), false, nullptr, ETeleportType::TeleportPhysics);
         FTimerHandle timerHandle;
         GetWorld()->GetTimerManager().SetTimer(timerHandle, [this] { ToggleDrive(true, true); }, 0.05f, false, 0.05f);
 	}
+}
+
+void UVRPhysicsHandleComponent::UpdateRepositionCheck()
+{
+	// Check if the grabbed transform is too far away.
+	FTransform targetTransform = GetGrabbedTargetTransform();
+	float distanceToTarget = (targetTransform.GetLocation() - grabbedComponent->GetComponentLocation()).Size();
+	if (distanceToTarget >= repositionDistance)
+	{
+		// Check if the reposition location has no blocking overlaps for a physics body.
+		TArray<UPrimitiveComponent*> overlappedComps;
+        TArray<AActor*> actorsToIgnore;
+        actorsToIgnore.Add(grabbedComponent->GetOwner());
+		bool overlapping = UVRFunctionLibrary::ComponentOverlapComponentsByChannel(grabbedComponent, targetTransform, ECC_PhysicsBody, actorsToIgnore, overlappedComps, true);
+		if (!overlapping)
+		{
+            grabbedComponent->SetWorldLocation(targetTransform.GetLocation(), false, nullptr, ETeleportType::TeleportPhysics);
+			TeleportGrabbedComp();
+		}
+	}
+}
+
+FTransform UVRPhysicsHandleComponent::GetGrabbedTargetTransform()
+{
+	FVector newPos = targetComponent->GetComponentTransform().TransformPositionNoScale(grabbedOffset.GetLocation());
+	FRotator newRot = targetComponent->GetComponentTransform().TransformRotation(grabbedOffset.GetRotation()).Rotator();
+    return FTransform(newRot, newPos, FVector(0.0f));
 }
 
 void UVRPhysicsHandleComponent::DestroyJoint()
@@ -337,6 +372,16 @@ FTransform UVRPhysicsHandleComponent::GetTargetLocation()
 FTransform UVRPhysicsHandleComponent::GetTargetOffset()
 {
 	return targetOffset;
+}
+
+void UVRPhysicsHandleComponent::SetTargetOffset(FTransform& newOffset)
+{
+	targetOffset = newOffset;
+}
+
+void UVRPhysicsHandleComponent::AddExtraOffset(FVector& newOffset)
+{
+    extraOffset = newOffset;
 }
 
 void UVRPhysicsHandleComponent::SetTarget(FTransform newTargetTransform, bool updateTransformInstantly)
