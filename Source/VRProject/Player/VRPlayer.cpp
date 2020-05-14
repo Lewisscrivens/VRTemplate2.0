@@ -86,6 +86,7 @@ AVRPlayer::AVRPlayer()
 	movementLocked = false;
 	thumbL = false;
 	thumbR = false;
+	centeredLocation = FVector::ZeroVector;
 	debug = false;
 }
 
@@ -588,6 +589,31 @@ void AVRPlayer::UpdateHardwareTrackingState()
 	// Update the tracked state of the controllers also.
 	leftHand->UpdateControllerTrackedState();
 	rightHand->UpdateControllerTrackedState();
+}
+
+void AVRPlayer::RecenterPlayer()
+{
+	// Rotate player.
+	float newCameraRotation = centeredRotation.Yaw - (camera->GetRelativeRotation().Yaw - 180.0f);
+	movementCapsule->SetWorldRotation(FRotator(0.0f, newCameraRotation - 180.0f, 0.0f), false, nullptr, ETeleportType::TeleportPhysics);
+
+	// Get offset difference and new capsule location and move the capsule to the specified newLocation.
+	FVector newCapsuleLocation = FVector(centeredLocation.X, centeredLocation.Y, centeredLocation.Z);
+	movementCapsule->SetWorldLocation(newCapsuleLocation, false, nullptr, ETeleportType::TeleportPhysics);
+
+	// Get camera offset to the scene.
+	FVector cameraOffset = scene->GetComponentTransform().InverseTransformPositionNoScale(camera->GetComponentLocation());
+
+	// Offset the VR Scene location by the relative offset of the camera to the capsule to place the player within the movement capsule at the newLocation.	
+	FVector newRoomLocation = movementCapsule->GetComponentTransform().TransformPositionNoScale(-cameraOffset);
+	scene->SetWorldLocation(newRoomLocation);
+	Teleported();
+}
+
+void AVRPlayer::SetCenterPosition(FVector newCenterLocation, FRotator newCenterRotation)
+{
+	centeredLocation = newCenterLocation;
+	centeredRotation = newCenterRotation;
 }
 
 void AVRPlayer::MovePlayerWithRotation(FVector newLocation, FRotator newFacingRotation)

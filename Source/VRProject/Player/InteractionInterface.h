@@ -130,10 +130,10 @@ public:
 	/** Setup functions for other classes overriding this interfaces functions */
 
 	/** Ran when trigger is pressed all the way down. */
-	virtual void GrabPressed_Implementation(AVRHand* hand);
+	virtual void Grabbed_Implementation(AVRHand* hand);
 
 	/** Ran when the trigger is released. */
-	virtual void GrabReleased_Implementation(AVRHand* hand);
+	virtual void Released_Implementation(AVRHand* hand);
 
 	/** Ran when the controller is squeezed. */
 	virtual void Squeezing_Implementation(AVRHand* hand, float howHard);

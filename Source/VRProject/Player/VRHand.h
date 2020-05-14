@@ -87,6 +87,10 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
 	UVRPhysicsHandleComponent* handHandle;
 
+	/** VR Physics handle component to handle any grabbed objects. */
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
+	UVRPhysicsHandleComponent* grabHandle;
+
 	/** Pointer to the main player class. Initialized in the player class. */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Hand")
 	AVRPlayer* player;
@@ -116,13 +120,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Hand")
 	UObject* objectInHand;
 
+	/** Should interpolate grabbable objects towards the hand and grab them. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hand")
+	bool telekineticGrab;
+
 	/** Do the hands disappear when grabbing things? */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hand")
 	bool hideOnGrab;
-
-	/** Distance the hand can get stuck before repositioning occurs. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hand")
-	float repositionDistance;
 
 	/** Is the player grabbing? */
 	UPROPERTY(BlueprintReadOnly, Category = "Hand|CurrentValues")
@@ -177,6 +181,7 @@ private:
 	bool lastFrameOverlap; /** Did we overlap something in the last frame. */
 	bool devModeEnabled; /** Local bool to check if dev mode is enabled. */
 	float devModeCurlAlpha; /** Curl alpha for all fingers while using dev mode... */
+	bool openedSinceGrabbed; /** Has the hand been opened since the last intended grab action. */
 
 private:
 
@@ -195,11 +200,14 @@ private:
 	/** When the distance between the hand and the grabbed component becomes too great it is released from the hand. */
 	void CheckInteractablesDistance();
 
+	/** Update finger tracking functionality as-well as resizing physics collision based off curled fingers. */
+	void UpdateFingerTracking();
+
 	/** Update the hand animation variables. */
 	void UpdateAnimationInstance();
 
-	/** Handle resizing physics collision based off hand being closed. */
-	void UpdatePhysicalCollider();
+	/** Update telekinetic grabbing for retrieving items up-to a given distance. */
+	void UpdateTelekineticGrab();
 
 public:
 

@@ -79,6 +79,7 @@ AVRHand::AVRHand()
 
 	// Initialise the physics handles.
 	handHandle = CreateDefaultSubobject<UVRPhysicsHandleComponent>("PhysicsHandle");
+	grabHandle = CreateDefaultSubobject<UVRPhysicsHandleComponent>("GrabHandle");
 	handHandle->reposition = true;
 
 	// Setup widget interaction components.
@@ -118,9 +119,10 @@ AVRHand::AVRHand()
 	thumbstick = FVector2D(0.0f, 0.0f);
 	distanceFrameCount = 0;
 	debug = false;
+	telekineticGrab = true;
 	devModeEnabled = false;
 	devModeCurlAlpha = 0.0f;
-	repositionDistance = 18.0f;
+	openedSinceGrabbed = true;
 }
 
 void AVRHand::BeginPlay()
@@ -206,12 +208,11 @@ void AVRHand::Tick(float DeltaTime)
 	angle = FMath::RadiansToDegrees(angle);
 	handAngularVelocity = currentHandRotation.RotateVector((axis * angle) / DeltaTime);
 
-	// Update the animation instance variables for the handSkel.
-	// Handles retrieving finger curls from index controller...
-	UpdateAnimationInstance();
+	// Update finger tracking and physics collider size based off finger tracking.
+	UpdateFingerTracking();
 
-	// Update physics collider checks.
-	UpdatePhysicalCollider();
+	// Update telekinetic grabbing if enabled.
+	if (telekineticGrab) UpdateTelekineticGrab();
 
 	// If an object is grabbed by the hand update the relevant functions.
 	if (objectInHand)
@@ -222,6 +223,8 @@ void AVRHand::Tick(float DeltaTime)
 		// Update interactable distance for releasing over max distance.
 		CheckInteractablesDistance();
 	}
+	// If nothing is grabbed yet look for interactables.
+	else CheckForOverlappingActors();
 }
 
 void AVRHand::WidgetInteractorOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -242,7 +245,6 @@ void AVRHand::WidgetInteractorOverlapBegin(class UPrimitiveComponent* Overlapped
 
 void AVRHand::TriggerPressed()
 {
-
 	// Implement dev mode grabbing...
 #if WITH_EDITOR
 	if (devModeEnabled)
@@ -254,7 +256,6 @@ void AVRHand::TriggerPressed()
 
 void AVRHand::TriggerReleased()
 {
-
 	// Implement dev mode releasing...
 #if WITH_EDITOR
 	if (devModeEnabled)
@@ -284,7 +285,8 @@ void AVRHand::Grab()
 			if (!otherGrabbedObjectSettings.twoHandedGrabbing) otherHand->ReleaseGrabbedActor();
 		}
 
-		// Disable the handSkel, physicsCollider and grabCollider. Also hide hand if the option is enabled.
+		// Disable collision while grabbed...
+		// Also hide hand if the option is enabled.
 		ActivateCollision(false);
 		if (hideOnGrab) handSkel->SetVisibility(false);
 		
@@ -368,6 +370,7 @@ void AVRHand::TeleportHand()
 {
 	// Move hand to teleported location, also disable collision until new overlaps are ended.
 	handHandle->TeleportGrabbedComp();
+	if (objectInHand) grabHandle->TeleportGrabbedComp();
 	ResetCollision();
 
 	// Used on components that need re-positioning after a teleportation.
@@ -537,6 +540,37 @@ void AVRHand::CheckInteractablesDistance()
 	}
 }
 
+void AVRHand::UpdateFingerTracking()
+{
+	// Update finger tracking in animation instance.
+	UpdateAnimationInstance();
+
+	// Check if grab should be pressed/released.
+	// If more than three fingers are down then grab, otherwise if grabbed release.
+	float fingersClosedAlpha = (currentCurls.Index + currentCurls.Middle + currentCurls.Pinky + currentCurls.Ring + currentCurls.Thumb) / 5.0f;
+	if (fingersClosedAlpha > 0.6f)
+	{
+		if (openedSinceGrabbed)
+		{
+			Grab();
+			openedSinceGrabbed = false;
+		}
+	}
+	else
+	{
+		Drop();
+		openedSinceGrabbed = true;
+	}
+
+	// Update the boxes extent and positioning for when the hand is closed or opened. 
+	// NOTE: This is overcomplicated because of the way the handskel is attached to the physics box.
+	float grabExtentX = FMath::Lerp(9.5f, 4.0f, fingersClosedAlpha);
+	handPhysics->SetBoxExtent(FVector(grabExtentX, 2.9f, 5.6f));
+	FVector newOffset = handPhysics->GetForwardVector() * (fingersClosedAlpha * -4.0f);
+	handHandle->AddExtraOffset(newOffset);
+	handSkel->SetRelativeLocation(originalSkelOffset + FVector(fingersClosedAlpha * 4.0f, 0.0f, 0.0f));
+}
+
 void AVRHand::UpdateAnimationInstance()
 {
 	// Get the hand animation class and update animation variables.
@@ -580,16 +614,9 @@ void AVRHand::UpdateAnimationInstance()
 	}
 }
 
-void AVRHand::UpdatePhysicalCollider()
+void AVRHand::UpdateTelekineticGrab()
 {
-	// Update the boxes extent and positioning for when the hand is closed or opened. 
-	// NOTE: This is overcomplicated because of the way the handskel is attached to the physics box.
-	float alpha = (currentCurls.Index + currentCurls.Middle + currentCurls.Pinky + currentCurls.Ring + currentCurls.Thumb) / 5.0f;
-	float grabExtentX = FMath::Lerp(9.5f, 4.0f, alpha);
-	handPhysics->SetBoxExtent(FVector(grabExtentX, 2.9f, 5.6f));
-	FVector newOffset = handPhysics->GetForwardVector() * (alpha * -4.0f);
-	handHandle->AddExtraOffset(newOffset);
-	handSkel->SetRelativeLocation(originalSkelOffset +  FVector(alpha * 4.0f, 0.0f, 0.0f));
+	
 }
 
 void AVRHand::ResetHandle(UVRPhysicsHandleComponent* handleToReset)

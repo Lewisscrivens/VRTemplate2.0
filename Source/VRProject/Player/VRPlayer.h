@@ -127,6 +127,8 @@ private:
 	FTimerHandle headColDelay; /** Timer handle for the collision delay when the collision will be re-enabled on the head Collider. Also some timer handles for the hands. */
 	FXRDeviceId hmdDevice; /** Device ID for the current HMD device that is being used. */
 	AVRHand* movingHand; /** The hand that is currently initiating movement for the VRPawn. */
+	FVector centeredLocation; /** The centered location to reset tracking to. */
+	FRotator centeredRotation; /** The centered rotation to reset tracking to. */
 
 protected:
 
@@ -146,6 +148,7 @@ protected:
 	 *	     on begin play. */
 	void UpdateHardwareTrackingState();
 
+	
 public:
 
 	/** Constructor. */
@@ -159,6 +162,16 @@ public:
 
 	/** Teleported function to handle any events on teleport. */
 	void Teleported();
+
+	/** Reposition the players camera/scene location to the current centeredLocation. */
+	UFUNCTION(BlueprintCallable, Category = "Pawn")
+	void RecenterPlayer();
+
+	/** Set centered vr position. Note: Good for vehicle re-centering of the headset. Run Recenter player to recenter to centered position.
+	  * @Param newCenterLocation, The new center location to reposition the player to. 
+	  * @Param newCenterRotation, The new center rotation to reposition the player to. */
+	UFUNCTION(BlueprintCallable, Category = "Pawn")
+	void SetCenterPosition(FVector newCenterLocation, FRotator newCenterRotation);
 
 	/** Move/Set new world location and rotation of where the player is stood and facing.
 	 * @Param newLocation, The new location in world-space to teleport the player to.

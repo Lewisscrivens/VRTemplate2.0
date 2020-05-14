@@ -104,7 +104,7 @@ void UVRPhysicsHandleComponent::TickComponent(float DeltaTime, enum ELevelTick T
  	}
  
  	// If interpolation has been enabled perform blend between the current transform and the target at the given interpolation speed.
- 	if (handleData.interpolate)
+ 	if (handleData.interpolate && !teleported)
  	{
  		float alpha = FMath::Clamp(DeltaTime * handleData.interpSpeed, 0.0f, 1.0f);
  		FTransform normalisedCurrent = currentTransform;
@@ -117,6 +117,7 @@ void UVRPhysicsHandleComponent::TickComponent(float DeltaTime, enum ELevelTick T
  	else
  	{
  		currentTransform = targetTransform;
+        if (teleported) teleported = false;
  	}
  
  	// Update the transform of the physics handle.
@@ -274,6 +275,9 @@ void UVRPhysicsHandleComponent::TeleportGrabbedComp()
 		grabbedComponent->SetWorldLocationAndRotation(newPosition.GetLocation(), newPosition.GetRotation(), false, nullptr, ETeleportType::TeleportPhysics);
         FTimerHandle timerHandle;
         GetWorld()->GetTimerManager().SetTimer(timerHandle, [this] { ToggleDrive(true, true); }, 0.05f, false, 0.05f);
+
+        // Set teleported for interpolation reset if its enabled.
+        teleported = true;
 	}
 }
 

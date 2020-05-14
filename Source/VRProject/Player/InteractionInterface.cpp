@@ -7,12 +7,12 @@
 
 DEFINE_LOG_CATEGORY(LogInteractionInterface);
 
-void IInteractionInterface::GrabPressed_Implementation(AVRHand* hand)
+void IInteractionInterface::Grabbed_Implementation(AVRHand* hand)
 {
 
 }
 
-void IInteractionInterface::GrabReleased_Implementation(AVRHand* hand)
+void IInteractionInterface::Released_Implementation(AVRHand* hand)
 {
 
 }

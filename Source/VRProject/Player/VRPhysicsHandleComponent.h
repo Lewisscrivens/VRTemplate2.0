@@ -68,7 +68,7 @@ public:
 	/** Constructor for this struct. Defaults to default constraint values. Prioritize linear constrained movement over angular for more realistic collision tracking. */
 	/** NOTE: If using something like a sword etc. Use a much lower angular stiffness than the linear stiffness to get that specific effect. */
 	FPhysicsHandleData(bool dataEnabled = false, float linDamp = 200.0f, float angDamp = 200.0f, float linStiff = 35000.0f, float angStiff = 30000.0f, float speed = 50.0f,
-		bool softAgnConstraint = true, bool softlinConstraint = true, float maxForceLinear = 10000.0f, float maxForceAngular = 10000.0f, bool interpToTarget = true, bool updateHandle = true)
+		bool softAgnConstraint = true, bool softlinConstraint = true, float maxForceLinear = 10000.0f, float maxForceAngular = 10000.0f, bool interpToTarget = false, bool updateHandle = true)
 	{
 		this->handleDataEnabled = dataEnabled;
 		this->linearDamping = linDamp;
@@ -350,6 +350,7 @@ protected:
 	FVector extraOffset; 
 	FTransform grabbedOffset;
 	bool rotationConstraint; /** Is the rotation constraint currently active. */
+	bool teleported; /** Teleported last frame. */
 	FPhysicsHandleData originalData; /** Original physics handle data of this class, in case its replaced on creating the constraint. */
 
 	/** Unregister this component. */
