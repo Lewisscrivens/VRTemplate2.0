@@ -280,17 +280,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
 	FTransform GetTargetLocation();
 
-	/** Returns the target offset from the target component. Will be 0 if the grab location was the same as the target components location for example. */
-	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
-	FTransform GetTargetOffset();
-
-	/** Adjust target offset post grab. */
-	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
-	void SetTargetOffset(FTransform& newOffset);
-
 	/** Adjust target offset post grab by adding an amount to the original offset. */
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
-	void AddExtraOffset(FVector& newOffset);
+	void SetLocationOffset(FVector newOffset);
+
+
+
+	void SetRotationOffset(FRotator newOffset);
 
 	/** Enable or disable the current joints drive.
 	 * @Param linearDrive, Enable/Disable the linear drive of the current joint of this handle.
@@ -347,8 +343,9 @@ protected:
 	physx::PxD6Joint* joint; /** Pointer to PhysX joint created when a component is grabbed. */
 	physx::PxRigidDynamic* targetActor; /** Pointer to target actor created in the create joint function to constrain a given component to. */
 	FTransform targetOffset; /** Relative offset transform from the target component that the constraint was initialized / positioned. */
-	FVector extraOffset; 
-	FTransform grabbedOffset;
+	FVector extraLocationOffset; /** Extra location offset to target from the targetOffset transform. */
+	FRotator extraRotationOffset; /** Extra rotation offset to target from the targetOffset transform. */
+	FTransform grabbedOffset; /** Saved grabbable offset to the hand. */
 	bool rotationConstraint; /** Is the rotation constraint currently active. */
 	bool teleported; /** Teleported last frame. */
 	FPhysicsHandleData originalData; /** Original physics handle data of this class, in case its replaced on creating the constraint. */

@@ -19,6 +19,7 @@
 #include "Components/AudioComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Interactables/GrabbableActor.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimBlueprint.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
@@ -211,9 +212,6 @@ void AVRHand::Tick(float DeltaTime)
 	// Update finger tracking and physics collider size based off finger tracking.
 	UpdateFingerTracking();
 
-	// Update telekinetic grabbing if enabled.
-	if (telekineticGrab) UpdateTelekineticGrab();
-
 	// If an object is grabbed by the hand update the relevant functions.
 	if (objectInHand)
 	{
@@ -223,8 +221,26 @@ void AVRHand::Tick(float DeltaTime)
 		// Update interactable distance for releasing over max distance.
 		CheckInteractablesDistance();
 	}
-	// If nothing is grabbed yet look for interactables.
-	else CheckForOverlappingActors();
+	else
+	{
+		// If nothing is grabbed yet look for interactables.
+		CheckForOverlappingActors();
+
+		// Update telekinetic grabbing if enabled.
+		if (telekineticGrab)
+		{
+			if (trigger >= 1.0f && fingersClosedAlpha >= 0.6f)
+			{
+				UpdateTelekineticGrab();
+			}
+			else if (lerpingGrabbable)
+			{
+				lerpingGrabbable->grabbableMesh->SetCollisionProfileName("Interactable");
+				lerpingGrabbable->grabbableMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+				lerpingGrabbable = nullptr;
+			}	
+		}
+	}
 }
 
 void AVRHand::WidgetInteractorOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -547,7 +563,7 @@ void AVRHand::UpdateFingerTracking()
 
 	// Check if grab should be pressed/released.
 	// If more than three fingers are down then grab, otherwise if grabbed release.
-	float fingersClosedAlpha = (currentCurls.Index + currentCurls.Middle + currentCurls.Pinky + currentCurls.Ring + currentCurls.Thumb) / 5.0f;
+	fingersClosedAlpha = (currentCurls.Index + currentCurls.Middle + currentCurls.Pinky + currentCurls.Ring + currentCurls.Thumb) / 5.0f;
 	if (fingersClosedAlpha > 0.6f)
 	{
 		if (openedSinceGrabbed)
@@ -567,7 +583,7 @@ void AVRHand::UpdateFingerTracking()
 	float grabExtentX = FMath::Lerp(9.5f, 4.0f, fingersClosedAlpha);
 	handPhysics->SetBoxExtent(FVector(grabExtentX, 2.9f, 5.6f));
 	FVector newOffset = handPhysics->GetForwardVector() * (fingersClosedAlpha * -4.0f);
-	handHandle->AddExtraOffset(newOffset);
+	handHandle->SetLocationOffset(newOffset);
 	handSkel->SetRelativeLocation(originalSkelOffset + FVector(fingersClosedAlpha * 4.0f, 0.0f, 0.0f));
 }
 
@@ -616,7 +632,50 @@ void AVRHand::UpdateAnimationInstance()
 
 void AVRHand::UpdateTelekineticGrab()
 {
-	
+	// Look for lerping grabbable.
+	if (!lerpingGrabbable)
+	{
+		FHitResult sweepResult;
+		FVector startLoc = handPhysics->GetComponentLocation();
+		FVector endLoc = startLoc + (handPhysics->GetForwardVector() * 1000.0f);
+		TArray<TEnumAsByte<EObjectTypeQuery>> grabbableTypes;
+		grabbableTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Interactable));
+		GetWorld()->SweepSingleByObjectType(sweepResult, startLoc, endLoc, FQuat::Identity, grabbableTypes, FCollisionShape::MakeSphere(15.0f));
+		if (sweepResult.bBlockingHit)
+		{
+			if (AGrabbableActor* isGrabbable = Cast<AGrabbableActor>(sweepResult.Actor))
+			{
+				lerpingGrabbable = isGrabbable;
+				lerpingGrabbable->grabbableMesh->SetCollisionProfileName("PhysicsActorOverlap");
+				FVector foundLocation = lerpingGrabbable->grabbableMesh->GetComponentLocation();
+				telekineticStartLoc = foundLocation;
+				telekineticStartTime = GetWorld()->GetTimeSeconds();
+				telekineticLerpSpeed = (FMath::Clamp((foundLocation - controller->GetComponentLocation()).Size(), 0.0f, 1000.0f) / 1000.0f) * 1.5f;
+				return;
+			}
+		}
+	}
+	// Otherwise lerp the grabbable to the hand.
+	else
+	{
+		float alpha = (GetWorld()->GetTimeSeconds() - telekineticStartTime) / telekineticLerpSpeed;
+		FVector endLocation = grabCollider->GetComponentLocation() + (grabCollider->GetRightVector() * (handEnum == EControllerHand::Left ? 8.0f : -8.0f));
+		FVector lerpingLocation = FMath::Lerp(telekineticStartLoc, endLocation, alpha);
+		lerpingGrabbable->grabbableMesh->SetWorldLocation(lerpingLocation, false, nullptr, ETeleportType::ResetPhysics);
+		lerpingGrabbable->grabbableMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		if (alpha >= 1.0f)
+		{
+			// Reset interactable settings before grabbing.
+			lerpingGrabbable->grabbableMesh->SetCollisionProfileName("Interactable");
+			lerpingGrabbable->grabbableMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+
+			// Grab the grabbable.
+			ForceGrab(lerpingGrabbable);
+
+			// Finished lerping.
+			lerpingGrabbable = nullptr;
+		}
+	}
 }
 
 void AVRHand::ResetHandle(UVRPhysicsHandleComponent* handleToReset)

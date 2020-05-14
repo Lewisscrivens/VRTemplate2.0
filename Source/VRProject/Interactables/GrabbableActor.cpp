@@ -47,6 +47,7 @@ AGrabbableActor::AGrabbableActor()
 	otherGrabInfo = FGrabInformation();
 	grabbedPhysicsMaterial = false;
 	snapToHand = false;
+	snapToSecondHand = false;
 	changeMassOnGrab = false;
 	considerMassWhenThrown = false;
 	massWhenGrabbed = 0.5f;
@@ -174,7 +175,7 @@ void AGrabbableActor::Tick(float DeltaTime)
 	lastZ = grabbableMesh->GetComponentLocation().Z;
 }
 
-void AGrabbableActor::PickupPhysicsHandle(FGrabInformation info)
+void AGrabbableActor::PickupPhysicsHandle(FGrabInformation info, bool secondHand)
 {
 	// Play sound and haptic effects.
 	float rumbleIntesity = FMath::Clamp(info.handRef->handVelocity.Size() / 250.0f, 0.0f, 1.0f);
@@ -191,9 +192,27 @@ void AGrabbableActor::PickupPhysicsHandle(FGrabInformation info)
 	FVector locationToGrab = info.targetComponent->GetComponentLocation();
 	FRotator rotationToGrab = info.targetComponent->GetComponentRotation();
 
+	// If snapping is enabled use the snap offset and rotation from the targets.
+	if (snapToHand)
+	{
+		if (!secondHand)
+		{
+			grabbableMesh->SetWorldLocation(info.handRef->handPhysics->GetComponentLocation() + snapToHandLocationOffset);
+			grabbableMesh->SetWorldRotation(info.handRef->handPhysics->GetComponentRotation() + snapToHandRotationOffset);
+		}
+	}
+
 	// Grab. Increase stabilization while grabbed to prevent visual errors or snapping...
 	info.handRef->grabHandle->CreateJointAndFollowLocationWithRotation(grabbableMesh, info.targetComponent, NAME_None, locationToGrab, rotationToGrab, interactableSettings.physicsData);
 	grabbableMesh->SetSimulatePhysics(true);
+
+	// Setup second hand after attachment.
+	// Target grab direction towards second hand at second hand grab location.
+	if (secondHand && snapToSecondHand)
+	{
+		FVector newOffset = info.handRef->handPhysics->GetComponentTransform().InverseTransformPositionNoScale(grabbableMesh->GetComponentLocation() + (grabbableMesh->GetForwardVector() * 10.0f));
+		info.handRef->grabHandle->SetLocationOffset(-newOffset);
+	}
 
 #if DEVELOPMENT
 	if (debug) UE_LOG(LogGrabbable, Log, TEXT("The grabbable actor %s, has been grabbed by PhysicsHandle."), *GetName());
@@ -239,8 +258,8 @@ void AGrabbableActor::Grabbed_Implementation(AVRHand* hand)
 			otherGrabInfo.targetComponent = (UPrimitiveComponent*)hand->handRoot;
 
 			// Grab the component with two hands.
-			PickupPhysicsHandle(grabInfo);
-			PickupPhysicsHandle(otherGrabInfo);
+			PickupPhysicsHandle(grabInfo, false);
+			PickupPhysicsHandle(otherGrabInfo, true);
 		}
 		else
 		{
@@ -255,7 +274,7 @@ void AGrabbableActor::Grabbed_Implementation(AVRHand* hand)
 			}
 
 			// Grab via physics handle.
-			PickupPhysicsHandle(grabInfo);
+			PickupPhysicsHandle(grabInfo, false);
 
 			// Apply mass change if enabled.
 			if (changeMassOnGrab) grabbableMesh->SetMassOverrideInKg(NAME_None, massWhenGrabbed, true);
@@ -268,12 +287,6 @@ void AGrabbableActor::Grabbed_Implementation(AVRHand* hand)
 #if DEVELOPMENT
 			else if (debug) UE_LOG(LogGrabbable, Warning, TEXT("Cannot update physics material on grab as the physicsMaterialWhileGrabbed is null in the grabbable actor %s."), *GetName());
 #endif
-
-			// Save the current original pickup transforms depending on the type of grab.
-			if (snapToHand)
-			{
-				// SETUP...
-			}
 		}
 
 		// Add the hand to the array of ignored actors for collision checks.
@@ -335,6 +348,12 @@ void AGrabbableActor::Released_Implementation(AVRHand* hand)
 			grabbableMesh->SetPhysicsLinearVelocity(grabbableMesh->GetPhysicsLinearVelocity() * massMultiplier);
 			grabbableMesh->SetPhysicsAngularVelocityInRadians(grabbableMesh->GetPhysicsAngularVelocityInRadians() * massMultiplier);
 		}
+	}
+	else
+	{
+		// ??? don't get why I have to run this but it seems to work.
+		grabbableMesh->SetPhysicsLinearVelocity(grabbableMesh->GetPhysicsLinearVelocity());
+		grabbableMesh->SetPhysicsAngularVelocityInRadians(grabbableMesh->GetPhysicsAngularVelocityInRadians());
 	}
 
 	// Reset values to default. Do last.

@@ -97,11 +97,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grabbable")
 	bool snapToHand;
 
-	/** Used for snap to hand so the rotation for each object can be adjusted to an offset. */
+	/** Snap the grabbed object to the current second hand location. NOTE: Only used if two handed grabbing is enabled. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grabbable")
+	bool snapToSecondHand;
+
+	/** Used for snap to hand so the rotation for each object can be adjusted to an offset.
+	  * NOTE: This is the offset for the first hand. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grabbable", meta = (EditCondition = "snapToHand"))
 	FRotator snapToHandRotationOffset;
 
-	/** Used for snap to hand so the location for each object can be adjusted to an offset. */
+	/** Used for snap to hand so the location for each object can be adjusted to an offset. 
+	  * NOTE: This is the offset for the first hand. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grabbable", meta = (EditCondition = "snapToHand"))
 	FVector snapToHandLocationOffset;
 
@@ -202,7 +208,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	/** Physics handle grabbing/releasing functions. */
-	void PickupPhysicsHandle(FGrabInformation info);
+	void PickupPhysicsHandle(FGrabInformation info, bool secondHand);
 	void DropPhysicsHandle(FGrabInformation info);
 
 	/** Check if the actor is grabbed. */

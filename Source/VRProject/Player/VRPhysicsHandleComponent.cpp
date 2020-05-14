@@ -87,13 +87,21 @@ void UVRPhysicsHandleComponent::TickComponent(float DeltaTime, enum ELevelTick T
  	{
  		if (grabOffset)
  		{
- 			targetTransform.SetLocation(targetComponent->GetComponentTransform().TransformPositionNoScale(targetOffset.GetLocation()) + extraOffset);
- 			if (updateTargetRotation) targetTransform.SetRotation(targetComponent->GetComponentTransform().TransformRotation(targetOffset.GetRotation()));
+ 			targetTransform.SetLocation(targetComponent->GetComponentTransform().TransformPositionNoScale(targetOffset.GetLocation() + extraLocationOffset));
+            if (updateTargetRotation)
+            {
+                FQuat newTargetRotation = targetComponent->GetComponentTransform().TransformRotation((targetOffset.GetRotation().Rotator() + extraRotationOffset).Quaternion());
+                targetTransform.SetRotation(newTargetRotation);
+            }
  		}
  		else
  		{
- 			targetTransform.SetLocation(targetComponent->GetComponentLocation() + extraOffset);
- 			if (updateTargetRotation) targetTransform.SetRotation(targetComponent->GetComponentRotation().Quaternion());
+ 			targetTransform.SetLocation(targetComponent->GetComponentLocation() + extraLocationOffset);
+            if (updateTargetRotation)
+            {
+                FQuat newTargetRotation = (targetComponent->GetComponentRotation() + extraRotationOffset).Quaternion();
+                targetTransform.SetRotation(newTargetRotation);
+            }
  		}
 
         // If reposition is enabled update it.
@@ -373,19 +381,14 @@ FTransform UVRPhysicsHandleComponent::GetTargetLocation()
 	return newTransform;
 }
 
-FTransform UVRPhysicsHandleComponent::GetTargetOffset()
+void UVRPhysicsHandleComponent::SetLocationOffset(FVector newOffset)
 {
-	return targetOffset;
+    extraLocationOffset = newOffset;
 }
 
-void UVRPhysicsHandleComponent::SetTargetOffset(FTransform& newOffset)
+void UVRPhysicsHandleComponent::SetRotationOffset(FRotator newOffset)
 {
-	targetOffset = newOffset;
-}
-
-void UVRPhysicsHandleComponent::AddExtraOffset(FVector& newOffset)
-{
-    extraOffset = newOffset;
+	extraRotationOffset = newOffset;
 }
 
 void UVRPhysicsHandleComponent::SetTarget(FTransform newTargetTransform, bool updateTransformInstantly)

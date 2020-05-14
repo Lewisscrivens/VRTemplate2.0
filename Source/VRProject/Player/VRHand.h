@@ -27,6 +27,7 @@ class UEffectsContainer;
 class UWidgetInteractionComponent;
 class USphereComponent;
 class UWidgetComponent;
+class AGrabbableActor;
 
 /** Controller type enum for selecting the offset of each hand. 
  *  NOTE: Index is the only tested and supported controller but there is offset support for others through the use of SteamVRInput... */
@@ -112,6 +113,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Hand")
 	FSteamVRFingerCurls currentCurls;
 
+	/** Pointer to the current lerping grabbable being updated in the telekinetic grab function. */
+	UPROPERTY(BlueprintReadOnly, Category = "Hand")
+	AGrabbableActor* lerpingGrabbable;
+
 	/** Pointer to store any overlapping objects that can be grabbed and contain the hands interface. */
 	UPROPERTY(BlueprintReadOnly, Category = "Hand")
 	UObject* objectToGrab;
@@ -169,18 +174,22 @@ protected:
 private:
 
 	APlayerController* owningController; /** The owning player controller of this hand class. */
-	FVector lastHandPosition, currentHandPosition;/** Last and current hand positions used for calculating force/velocity etc. */
-	FQuat lastHandRotation, currentHandRotation;
-	FTransform originalHandTransform;/** Saved original hand transform at the end of initialization. */	
 	FTimerHandle colTimerHandle, controllerColTimerHandle; /** Timer handle to store a reference to the Collider timer that loops the function CollisionDelay to check for overlapping collision. */
+	FTransform originalHandTransform;/** Saved original hand transform at the end of initialization. */		
+	FQuat lastHandRotation, currentHandRotation;
+	FVector lastHandPosition, currentHandPosition;/** Last and current hand positions used for calculating force/velocity etc. */
 	FVector originalSkelOffset;
+	FVector telekineticStartLoc;
 
 	int distanceFrameCount; /** How many frames has the hand been too far away from the grabbed object. */
+	float devModeCurlAlpha; /** Curl alpha for all fingers while using dev mode... */
 	float currentHapticIntesity; /** The current playing haptic effects intensity for this hand classes controller. */
+	float telekineticStartTime;
+	float telekineticLerpSpeed;
+	float fingersClosedAlpha; /** Alpha reprisentation between 0 and 1 of how many fingers on this hand are closed. */
 	bool collisionEnabled; /** Collision is enabled or disabled for this hand, disabled on begin play until the controller is tracked. */
 	bool lastFrameOverlap; /** Did we overlap something in the last frame. */
 	bool devModeEnabled; /** Local bool to check if dev mode is enabled. */
-	float devModeCurlAlpha; /** Curl alpha for all fingers while using dev mode... */
 	bool openedSinceGrabbed; /** Has the hand been opened since the last intended grab action. */
 
 private:
