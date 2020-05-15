@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Player/VRFunctionLibrary.h"
+#include "Project/VRFunctionLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
@@ -53,6 +53,42 @@ float UVRFunctionLibrary::GetYawAngle(FVector vector)
 		localAngle += 180.0f;
 	}
 	else if (vector.X < 0.0f && vector.Y < 0.0f)
+	{
+		localAngle -= 180.0f;
+	}
+
+	// Return the yaw angle.
+	return localAngle;
+}
+
+float UVRFunctionLibrary::GetPitchAngle(FVector vector)
+{
+	// Calculate the angle of the vector.
+	float localAngle = FMath::RadiansToDegrees(FMath::Atan(vector.X / vector.Z));
+
+	if (vector.Z < 0.0f && vector.X > 0.0f)
+	{
+		localAngle += 180.0f;
+	}
+	else if (vector.Z < 0.0f && vector.X < 0.0f)
+	{
+		localAngle -= 180.0f;
+	}
+
+	// Return the yaw angle.
+	return -localAngle;
+}
+
+float UVRFunctionLibrary::GetRollAngle(FVector vector)
+{
+	// Calculate the angle of the vector.
+	float localAngle = FMath::RadiansToDegrees(FMath::Atan(vector.Y / vector.Z));
+
+	if (vector.Z < 0.0f && vector.Y > 0.0f)
+	{
+		localAngle += 180.0f;
+	}
+	else if (vector.Z < 0.0f && vector.Y < 0.0f)
 	{
 		localAngle -= 180.0f;
 	}

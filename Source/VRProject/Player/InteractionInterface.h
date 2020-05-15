@@ -3,7 +3,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "Player/VRPhysicsHandleComponent.h"
+#include "Project/VRPhysicsHandleComponent.h"
 #include "Globals.h"
 #include "InteractionInterface.generated.h"
 

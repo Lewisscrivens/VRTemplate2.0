@@ -9,7 +9,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
-#include "Player/VRFunctionLibrary.h"
+#include "Project/VRFunctionLibrary.h"
 #include "Player/VRHand.h"
 #include "GrabbableActor.h"
 

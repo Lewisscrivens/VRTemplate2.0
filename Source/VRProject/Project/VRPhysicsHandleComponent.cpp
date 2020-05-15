@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Player/VRPhysicsHandleComponent.h"
+#include "Project/VRPhysicsHandleComponent.h"
 #include "EngineDefines.h"
 #include "PhysxUserData.h"
 #include "Components/PrimitiveComponent.h"

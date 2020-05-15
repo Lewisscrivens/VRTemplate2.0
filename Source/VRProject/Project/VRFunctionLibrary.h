@@ -41,6 +41,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Rotation)
 	static float GetYawAngle(FVector vector);
 
+	/** Get the Pitch look at angle from a given vector.
+	 * @Param vector, The vector to get the pitch angle rotation from. */
+	UFUNCTION(BlueprintCallable, Category = Rotation)
+	static float GetPitchAngle(FVector vector);
+
+	/** Get the Roll look at angle from a given vector.
+	 * @Param vector, The vector to get the roll angle rotation from. */
+	UFUNCTION(BlueprintCallable, Category = Rotation)
+	static float GetRollAngle(FVector vector);
+
 	/** Get an angle between 0 and 360 from a cumulative angle.
 	 * @Param angle, The angle to convert into 0 to 360 format. */
 	UFUNCTION(BlueprintCallable, Category = Rotation)
