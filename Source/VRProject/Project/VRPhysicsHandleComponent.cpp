@@ -87,7 +87,7 @@ void UVRPhysicsHandleComponent::TickComponent(float DeltaTime, enum ELevelTick T
  	{
  		if (grabOffset)
  		{
- 			targetTransform.SetLocation(targetComponent->GetComponentTransform().TransformPositionNoScale(targetOffset.GetLocation() + extraLocationOffset));
+ 			targetTransform.SetLocation(targetComponent->GetComponentTransform().TransformPositionNoScale(targetOffset.GetLocation()) + extraLocationOffset);
             if (updateTargetRotation)
             {
                 FQuat newTargetRotation = targetComponent->GetComponentTransform().TransformRotation((targetOffset.GetRotation().Rotator() + extraRotationOffset).Quaternion());

@@ -84,7 +84,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotatable|Rotation")
 		bool fakePhysics;
 
-	/** Center the rotational limit to plus and minus "rotationLimit / 2" in either direction. Default is false. NOTE: For physics modes u need to just use start rotation as half of the rotation limit instead... */
+	/** Center the rotational limit to plus and minus "rotationLimit / 2" in either direction. Default is false. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotatable|Rotation")
 		bool centerRotationLimit;
 
@@ -264,7 +264,6 @@ protected:
 #if WITH_EDITOR
 	/** Post edit change. */
 	virtual void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent) override;
-	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif
 
 	/** Spawn in and setup a physics constraint for this mesh to its parent with the given physics options for the constraint. */
