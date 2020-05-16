@@ -33,7 +33,7 @@ UENUM(BlueprintType)
 enum class EGrabMode : uint8
 {
 	Static UMETA(DisplayName = "GrabStatic", ToolTip = "Rotation will be updated via the controllers offset from original grabbed rotation."),
-	Physics UMETA(DisplayName = "GrabPhysics", ToolTip = "Rotation will be updated via the hands grab vr physics handle. NOTE: Collisions with physics objects will be taken into account this way."),
+	Physics UMETA(DisplayName = "GrabPhysics", ToolTip = "Rotation will be updated via the hands grab vr physics handle. NOTE: Needs a mesh component as a parent or it will not work as intended!!! Required for creating constraint between parent and this rotatingMesh..."),
 };
 
 /** Axis to rotate around. */
@@ -101,7 +101,7 @@ public:
 		float restitution;
 
 	/** The fakedPhysics damping variable. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotatable|Rotation", meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "0.2", UIMax = "0.2"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotatable|Rotation", meta = (ClampMin = "0.0", UIMin = "0.0"))
 		float friction;
 
 	/** The max rotation limit. NOTE: 0 means its free to rotate to any given limit. */
@@ -207,6 +207,10 @@ public:
 	/** Physics constraint for physics mode of this rotatable static mesh spawned in on begin play.  */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
 		UPhysicsConstraintComponent* pivot;
+
+	/** Saved parent component in-case physics simulation causes a detachment. */
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+		USceneComponent* parentComponent;
 
 	//////////////////////////
 	//	  Grab delegates    //

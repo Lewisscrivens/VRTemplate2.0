@@ -75,6 +75,9 @@ void URotatableStaticMesh::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Save parent component.
+	parentComponent = GetAttachParent();
+
 	// Save original relative transform to compare rotational different when setting new relative rotation in UpdateRotation().
 	originalRelativeRotation = GetRelativeTransform().Rotator();
 
@@ -131,6 +134,12 @@ void URotatableStaticMesh::BeginPlay()
 	{
 		rotationTimeline = USimpleTimeline::CreateSimpleTimeline(rotationUpdateCurve, "RotatableTimeline", this, "UpdateRotatableRotation", "EndRotatableRotation", this->GetOwner());
 	}
+
+	// If its locked on start lock it.
+	if (lockable && locked)
+	{
+		Lock(startRotation);
+	}
 }
 
 void URotatableStaticMesh::CreatePhysicsConstraint()
@@ -139,13 +148,12 @@ void URotatableStaticMesh::CreatePhysicsConstraint()
 	SetSimulatePhysics(true);
 
 	// Spawn and setup constraint between parent and this rotatable mesh.
-	FName generatedConstraintName = MakeUniqueObjectName(this, UPhysicsConstraintComponent::StaticClass(), FName("RotatableConstraint"));
-	UPhysicsConstraintComponent* generatedConstraint = NewObject<UPhysicsConstraintComponent>(this, generatedConstraintName);
-	generatedConstraint->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::KeepWorldTransform);
+	FName generatedConstraintName = MakeUniqueObjectName(GetOwner(), UPhysicsConstraintComponent::StaticClass(), FName("RotatableConstraint"));
+	UPhysicsConstraintComponent* generatedConstraint = NewObject<UPhysicsConstraintComponent>(GetOwner(), generatedConstraintName);
+	generatedConstraint->AttachToComponent(parentComponent, FAttachmentTransformRules::KeepWorldTransform);
 	generatedConstraint->RegisterComponent();
-	generatedConstraint->SetWorldLocationAndRotation(GetComponentLocation(), GetComponentRotation());
+	generatedConstraint->SetWorldLocationAndRotation(parentComponent->GetComponentLocation(), parentComponent->GetComponentRotation());
 	generatedConstraint->SetDisableCollision(true); // Disable collision between bodies.
-	generatedConstraint->SetConstrainedComponents((UPrimitiveComponent*)GetAttachParent(), NAME_None, this, NAME_None);
 	generatedConstraint->SetLinearXLimit(LCM_Locked, 0.0f);
 	generatedConstraint->SetLinearYLimit(LCM_Locked, 0.0f);
 	generatedConstraint->SetLinearZLimit(LCM_Locked, 0.0f);
@@ -180,7 +188,8 @@ void URotatableStaticMesh::CreatePhysicsConstraint()
 		pivot->SetAngularVelocityTarget(FVector(0));
 	}
 
-	// Initialise the constraint.	
+	// Initialise the constraint.
+	pivot->SetConstrainedComponents((UPrimitiveComponent*)parentComponent, NAME_None, this, NAME_None);
 	UpdateConstraintMode();
 }
 
@@ -339,6 +348,8 @@ bool URotatableStaticMesh::CanEditChange(const UProperty* InProperty) const
 	{
 		return grabMode != EGrabMode::Physics;
 	}
+
+	return ParentVal;
 }
 #endif
 
@@ -351,7 +362,7 @@ void URotatableStaticMesh::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	if (handRef || grabMode == EGrabMode::Physics)
 	{
 		UpdateRotatable(DeltaTime);
-		UpdateRotation(DeltaTime);
+		if (grabMode != EGrabMode::Physics) UpdateRotation(DeltaTime);
 	}
 	// Otherwise If the hands release velocity has been set slow down the rotatable using the friction and restitution values to fake physics...	
 	else if (angleChangeOnRelease != 0.0f && !interpolating)
@@ -426,7 +437,7 @@ void URotatableStaticMesh::UpdateRotatable(float DeltaTime)
 		if (handRef) UpdateHandGrabDistance();
 
 		// Get rotation from world as its being updated through the physics system.
-		currentAngle = UVRFunctionLibrary::GetRelativeRotationFromWorld(GetComponentRotation(), GetParentTransform()).Yaw;
+		currentAngle = UVRFunctionLibrary::GetRelativeRotationFromWorld(GetComponentRotation(), parentComponent->GetComponentTransform()).Yaw;
 	}
 	else if (handRef)
 	{
@@ -473,14 +484,24 @@ void URotatableStaticMesh::UpdateRotatable(float DeltaTime)
 
 void URotatableStaticMesh::UpdateRotation(float DeltaTime)
 {
-	if (!lockOnlyUpdate && grabMode != EGrabMode::Physics)
+	if (!lockOnlyUpdate)
 	{
 		// Convert the cumulative angle back into word rotation format.
 		float actualAngle = UVRFunctionLibrary::GetAngleFromCumulativeAngle(cumulativeAngle);
 
-		// Get/Set the final relative rotation.
+		// Get the final relative rotation.
 		FRotator updatedRotation = GetNewRelativeAngle(actualAngle);
-		SetRelativeRotation(updatedRotation);
+		
+		// Set rotation of rotatable.
+		switch (grabMode)
+		{
+		case EGrabMode::Static:
+			SetRelativeRotation(updatedRotation);
+		break;
+		case EGrabMode::Physics:
+			SetWorldRotation(parentComponent->GetComponentTransform().TransformRotation(updatedRotation.Quaternion()), false, nullptr, ETeleportType::TeleportPhysics);
+		break;
+		}
 	}
 }
 
@@ -566,7 +587,7 @@ void URotatableStaticMesh::UpdateRotatableLock()
 
 void URotatableStaticMesh::Lock(float lockingAngle)
 {
-	if (lockable)
+ 	if (lockable)
 	{
 		// If lock haptic effect is enable and not null play on hand then release. Also play sound.
 		if (handRef)
@@ -578,7 +599,12 @@ void URotatableStaticMesh::Lock(float lockingAngle)
 		// Lock.
 		cumulativeAngle = lockingAngle;
 		actualCumulativeAngle = cumulativeAngle;
-		SetRelativeRotation(GetNewRelativeAngle(cumulativeAngle));
+		if (grabMode == EGrabMode::Physics)
+		{
+			SetWorldRotation(parentComponent->GetComponentTransform().TransformRotation(GetNewRelativeAngle(cumulativeAngle).Quaternion()), false, nullptr, ETeleportType::TeleportPhysics);
+			// TODO: LOCK INTO PLACE USING ANGULAR DRIVE PARAMS.
+		}
+		else SetRelativeRotation(GetNewRelativeAngle(cumulativeAngle));
 		angleChangeOnRelease = 0.0f; // Ensure theres no faking of physics once locked.
 
 		// If this lock cannot be grabbed while locked prevent this interactable from being grabbed.
@@ -875,6 +901,12 @@ void URotatableStaticMesh::Released_Implementation(AVRHand* hand)
 	if (fakePhysics)
 	{
 		angleChangeOnRelease = currentAngleChange;
+	}
+
+	// If physics based release the rotatable mesh from the hands grab handle.
+	if (grabMode == EGrabMode::Physics)
+	{
+		handRef->grabHandle->DestroyJoint();
 	}
 
 	// Reset class variables.
