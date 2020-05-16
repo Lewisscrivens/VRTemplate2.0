@@ -316,6 +316,11 @@ FTransform UVRPhysicsHandleComponent::GetGrabbedTargetTransform()
     return FTransform(newRot, newPos, FVector(0.0f));
 }
 
+FTransform UVRPhysicsHandleComponent::GetGrabbedOffset()
+{
+    return grabbedOffset;
+}
+
 void UVRPhysicsHandleComponent::DestroyJoint()
 {
  	// Destroy all physX actors.

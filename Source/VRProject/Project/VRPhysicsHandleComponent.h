@@ -338,6 +338,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
 	FTransform GetGrabbedTargetTransform();
 
+	/** Get the offset from the target component to the grabbed component. */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|VRPhysicsHandle")
+	FTransform GetGrabbedOffset();
+
 protected:
 
 	physx::PxD6Joint* joint; /** Pointer to PhysX joint created when a component is grabbed. */

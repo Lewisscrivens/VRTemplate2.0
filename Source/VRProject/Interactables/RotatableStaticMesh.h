@@ -64,9 +64,13 @@ class VRPROJECT_API URotatableStaticMesh : public UStaticMeshComponent, public I
 
 public:
 
-	/** Reference to the hand currently grabbing this component. Also can be used as a bool to check if this is in a hand. */
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Rotatable")
+	/** Reference to the hand currently grabbing this component. */
+	UPROPERTY(BlueprintReadOnly, Category = "Rotatable")
 		AVRHand* handRef;
+
+	/** Reference to the second hand currently grabbing this component if two handed grabbing is enabled. */
+	UPROPERTY(BlueprintReadOnly, Category = "Rotatable")
+		AVRHand* secondHandRef;
 
 	/** What rotation mode is this rotatable static mesh. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotatable|Rotation")
@@ -268,7 +272,7 @@ protected:
 #if WITH_EDITOR
 	/** Post edit change. */
 	virtual void PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent) override;
-	virtual bool CanEditChange(const UProperty* InProperty) const override;
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
 
 	/** Spawn in and setup a physics constraint for this mesh to its parent with the given physics options for the constraint. */

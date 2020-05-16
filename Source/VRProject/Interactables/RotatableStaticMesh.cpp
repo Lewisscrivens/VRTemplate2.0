@@ -58,7 +58,7 @@ URotatableStaticMesh::URotatableStaticMesh()
 	cannotLock = false;
 	releaseWhenLocked = true;
 	debugLocking = false;
-	interpolating = true;
+	interpolating = false;
 	lockOnTimelineEnd = false;
 	impactSoundEnabled = true;
 
@@ -215,12 +215,23 @@ void URotatableStaticMesh::UpdateConstraint(EConstraintState state)
 	{
 		switch (state)
 		{
-			// If the pivot is currently bellow a currentlimit of 360 degrees, the pivot will not need frame by frame updates.
+		// If the pivot is currently bellow a currentlimit of 360 degrees, the pivot will not need frame by frame updates.
 		case EConstraintState::Bellow180:
 		{
 			// Update the current reference position.
 			UpdateConstraintRefference(currentRotationLimit / 2);
-			pivot->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Limited, currentRotationLimit / 2);
+			switch (rotateAxis)
+			{
+			case ERotateAxis::Pitch:
+				pivot->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Limited, currentRotationLimit / 2);
+				break;
+			case ERotateAxis::Yaw:		
+				pivot->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Limited, currentRotationLimit / 2);
+				break;
+			case ERotateAxis::Roll:
+				pivot->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Limited, currentRotationLimit / 2);
+				break;
+			}
 		}
 		break;
 		// Setup the starting constrained variables. (Allow pivot to move between 0 and 90 if the limit is over 360 degrees).
@@ -229,14 +240,36 @@ void URotatableStaticMesh::UpdateConstraint(EConstraintState state)
 			// Update the reference to be in the middle of 180 degrees.
 			UpdateConstraintRefference(90.0f);
 			// Set the swing limit to 180 degrees, so 90.
-			pivot->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Limited, 90.0f);
+			switch (rotateAxis)
+			{
+			case ERotateAxis::Pitch:
+				pivot->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Limited, 90.0f);
+				break;
+			case ERotateAxis::Yaw:
+				pivot->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Limited, 90.0f);
+				break;
+			case ERotateAxis::Roll:
+				pivot->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Limited, 90.0f);
+				break;
+			}
 		}
 		break;
 		// Setup the Middle constrained variables. (Setup a free pivot).
 		case EConstraintState::Middle:
 		{
 			// Set the swing to free until the current angle is close enough to the end or start to re-enable the pivot.
-			pivot->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Free, 0.0f);
+			switch (rotateAxis)
+			{
+			case ERotateAxis::Pitch:
+				pivot->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Free, 0.0f);			
+				break;
+			case ERotateAxis::Yaw:
+				pivot->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Free, 0.0f);
+				break;
+			case ERotateAxis::Roll:
+				pivot->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Free, 0.0f);
+				break;
+			}
 		}
 		break;
 		// Setup the ending constrained variables. (Allow rotation up to the currentLimit if the limit is over 360 degrees).
@@ -249,10 +282,22 @@ void URotatableStaticMesh::UpdateConstraint(EConstraintState state)
 			// Update the reference to be in the middle of 180 degrees.
 			UpdateConstraintRefference(endingAngle);
 			// Set the swing limit to 180 degrees, so 90.
-			pivot->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Limited, 90.0f);
+			switch (rotateAxis)
+			{
+			case ERotateAxis::Pitch:
+				pivot->SetAngularSwing2Limit(EAngularConstraintMotion::ACM_Limited, 90.0f);	
+				break;
+			case ERotateAxis::Yaw:
+				pivot->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Limited, 90.0f);
+				break;
+			case ERotateAxis::Roll:
+				pivot->SetAngularTwistLimit(EAngularConstraintMotion::ACM_Limited, 90.0f);
+				break;
+			}	
 		}
 		break;
 		}
+
 		// Update the current state.
 		constrainedState = state;
 	}
@@ -265,11 +310,23 @@ void URotatableStaticMesh::UpdateConstraintRefference(float constraintAngle)
 	if (flipped) angle *= -1;
 
 	// Get new offset.
-	FRotator rotationOffset = FRotator(0.0f, angle, 0.0f);
+	FRotator rotationOffset = FRotator::ZeroRotator;
+	switch (rotateAxis)
+	{
+	case ERotateAxis::Pitch:
+		rotationOffset = FRotator(angle, 0.0f, 0.0f);
+		break;
+	case ERotateAxis::Yaw:
+		rotationOffset = FRotator(0.0f, angle, 0.0f);
+		break;
+	case ERotateAxis::Roll:
+		rotationOffset = FRotator(0.0f, 0.0f, angle);
+		break;
+	}
 	FVector rotationOffsetForward = rotationOffset.Quaternion().GetForwardVector();
 	FVector rotationOffsetRight = rotationOffset.Quaternion().GetRightVector();
 
-	// Offset the pivot reference to half way through the current constrained limit on the swing axis.
+	// Offset the pivot reference to half way through the current constrained limit on the current axis.
 	pivot->SetConstraintReferenceOrientation(EConstraintFrame::Frame2, rotationOffsetForward, rotationOffsetRight);
 }
 
@@ -312,7 +369,7 @@ void URotatableStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& Propert
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(URotatableStaticMesh, startRotation))
 	{
 		// If the start rotation is changed update the rotation of this rotatable actor if its within the specified rotation limit.
-		if (rotationLimit < 0 ? startRotation < 0 && startRotation >= rotationLimit : startRotation >= 0 && startRotation <= rotationLimit)
+		if (rotationLimit < 0 ? startRotation < 0 && startRotation >= rotationLimit : startRotation >= 0 && startRotation <= rotationLimit && grabMode != EGrabMode::Physics)
 		{		
 			this->SetRelativeRotation(GetNewRelativeAngle(startRotation));
 
@@ -324,10 +381,20 @@ void URotatableStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& Propert
 		else startRotation = rotationLimit < 0 ? FMath::Clamp(startRotation, rotationLimit, 0.0f) : FMath::Clamp(startRotation, 0.0f, rotationLimit);
 	}
 
+	// If the property was the grab mode make sure center rotation and faked physics is disabled.
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(URotatableStaticMesh, grabMode))
+	{
+		if (grabMode == EGrabMode::Physics)
+		{
+			centerRotationLimit = false;
+			fakePhysics = false;
+		}
+	}
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
-bool URotatableStaticMesh::CanEditChange(const UProperty* InProperty) const
+bool URotatableStaticMesh::CanEditChange(const FProperty* InProperty) const
 {
 	const bool ParentVal = Super::CanEditChange(InProperty);
 
@@ -361,8 +428,11 @@ void URotatableStaticMesh::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	// Or run update rotatable if physics mode is enabled.
 	if (handRef || grabMode == EGrabMode::Physics)
 	{
-		UpdateRotatable(DeltaTime);
-		if (grabMode != EGrabMode::Physics) UpdateRotation(DeltaTime);
+		if (!interpolating)
+		{
+			UpdateRotatable(DeltaTime);
+			if (grabMode != EGrabMode::Physics) UpdateRotation(DeltaTime);
+		}
 	}
 	// Otherwise If the hands release velocity has been set slow down the rotatable using the friction and restitution values to fake physics...	
 	else if (angleChangeOnRelease != 0.0f && !interpolating)
@@ -430,15 +500,32 @@ void URotatableStaticMesh::UpdateGrabbedRotation()
 
 void URotatableStaticMesh::UpdateRotatable(float DeltaTime)
 {
-	// Get grabbed rotation from hand location difference.
+	// If physics base calculate and update current relative angle in the rotating axis.
 	if (grabMode == EGrabMode::Physics)
 	{
 		// Update distance between hand and this rotatableMesh if grabbed
 		if (handRef) UpdateHandGrabDistance();
 
 		// Get rotation from world as its being updated through the physics system.
-		currentAngle = UVRFunctionLibrary::GetRelativeRotationFromWorld(GetComponentRotation(), parentComponent->GetComponentTransform()).Yaw;
+		FRotator currRelative = parentComponent->GetComponentTransform().InverseTransformRotation(GetComponentRotation().Quaternion()).Rotator();
+		switch (rotateAxis)
+		{
+		case ERotateAxis::Pitch:
+		{
+			float pitchQuat = currRelative.Quaternion().Y;
+			pitchQuat *= -180.0f;
+			currentAngle = pitchQuat;
+		}
+		break;
+		case ERotateAxis::Yaw:
+			currentAngle = currRelative.Yaw;
+		break;
+		case ERotateAxis::Roll:
+			currentAngle = currRelative.Roll;
+		break;
+		}
 	}
+	// Otherwise update from grabbed offset.
 	else if (handRef)
 	{
 		UpdateGrabbedRotation();
@@ -451,6 +538,7 @@ void URotatableStaticMesh::UpdateRotatable(float DeltaTime)
 
 	// Update the rotation alpha for driving other game mechanics from this rotatable.
 	rotationAlpha = centerRotationLimit ? cumulativeAngle / (rotationLimit / 2) : FMath::Abs(cumulativeAngle / rotationLimit);
+	revolutionCount = cumulativeAngle / 360.0f;
 
 	// If the angle change is too big/small remove the error.
 	if (currentAngleChange < -100.0f) currentAngleChange += 360.0f;
@@ -463,11 +551,10 @@ void URotatableStaticMesh::UpdateRotatable(float DeltaTime)
 	// Update the rotatable's audio and haptic events.
 	UpdateAudioAndHaptics();
 
-	// Update the constraints reference position and limits depending on the current cumulative angle. Only if the current limit is greater than 180 degrees.
-	if (constrainedState != EConstraintState::Bellow180)
+	// Update the constraints reference position and limits depending on the current cumulative angle.
+	// Only if the current limit is greater than 180 degrees.
+	if (grabMode == EGrabMode::Physics && constrainedState != EConstraintState::Bellow180)
 	{
-		// Update revolution count...
-		revolutionCount = cumulativeAngle / 360.0f;
 		UpdateConstraintMode();
 	}
 
@@ -491,7 +578,7 @@ void URotatableStaticMesh::UpdateRotation(float DeltaTime)
 
 		// Get the final relative rotation.
 		FRotator updatedRotation = GetNewRelativeAngle(actualAngle);
-		
+
 		// Set rotation of rotatable.
 		switch (grabMode)
 		{
@@ -499,8 +586,22 @@ void URotatableStaticMesh::UpdateRotation(float DeltaTime)
 			SetRelativeRotation(updatedRotation);
 		break;
 		case EGrabMode::Physics:
-			SetWorldRotation(parentComponent->GetComponentTransform().TransformRotation(updatedRotation.Quaternion()), false, nullptr, ETeleportType::TeleportPhysics);
+		{
+			FQuat quat = updatedRotation.Quaternion();
+			if (rotateAxis == ERotateAxis::Pitch)
+			{
+				// TODO FIX PITCH...
+			}
+			SetWorldRotation(parentComponent->GetComponentTransform().TransformRotation(quat), false, nullptr, ETeleportType::TeleportPhysics);
+		}
 		break;
+		}
+
+		// Debug rotation being setup.
+		if (debug)
+		{
+			UE_LOG(LogRotatableMesh, Log, TEXT("The rotatable mesh, %s has a new relative rotation set from the cumulative angle:     %f"), *GetName(), cumulativeAngle);
+			UE_LOG(LogRotatableMesh, Log, TEXT("The rotatable mesh, %s has a new relative rotation set to the actual angle:     %f"), *GetName(), actualAngle);
 		}
 	}
 }
@@ -738,6 +839,7 @@ void URotatableStaticMesh::SetRotatableRotation(float angle, bool lockAtAngle, b
 		{
 			// Setup timeline variables.
 			interpolating = true;
+			firstRun = true;
 			timelineStartRotation = cumulativeAngle;		
 			timelineEndRotation = clampedAngle;
 			lockOnTimelineEnd = lockAtAngle;
@@ -755,6 +857,11 @@ void URotatableStaticMesh::SetRotatableRotation(float angle, bool lockAtAngle, b
 	cumulativeAngle = clampedAngle;
 	actualCumulativeAngle = cumulativeAngle;
 	rotationAlpha = centerRotationLimit ? cumulativeAngle / (rotationLimit / 2) : FMath::Abs(cumulativeAngle / rotationLimit);
+	if (grabMode == EGrabMode::Physics && constrainedState != EConstraintState::Bellow180)
+	{
+		UpdateConstraintMode();
+	}
+	firstRun = true;
 	UpdateRotation();
 	angleChangeOnRelease = 0.0f;
 
@@ -773,6 +880,10 @@ void URotatableStaticMesh::UpdateRotatableRotation(float val)
 	cumulativeAngle = newCumulativeAngle;
 	actualCumulativeAngle = cumulativeAngle;
 	rotationAlpha = centerRotationLimit ? cumulativeAngle / (rotationLimit / 2) : FMath::Abs(cumulativeAngle / rotationLimit);
+	if (grabMode == EGrabMode::Physics && constrainedState != EConstraintState::Bellow180)
+	{
+		UpdateConstraintMode();
+	}
 	UpdateRotation();
 }
 
@@ -831,6 +942,15 @@ void URotatableStaticMesh::UpdateAudioAndHaptics()
 
 void URotatableStaticMesh::Grabbed_Implementation(class AVRHand* hand)
 {
+	// Save hand reff.
+	if (!handRef) handRef = hand;
+	else if (interactableSettings.twoHandedGrabbing)
+	{
+		if (rotateMode == ERotationMode::Default && grabMode == EGrabMode::Physics) secondHandRef = hand;
+		else return;
+	}
+	else return;
+
 	// Broadcast grabbed delegate.
 	OnRotatableGrabbed.Broadcast(hand);
 
@@ -843,19 +963,31 @@ void URotatableStaticMesh::Grabbed_Implementation(class AVRHand* hand)
 
 	// Unlock if currently locked.
 	if (locked) Unlock();
-	handRef = hand;
 	angleChangeOnRelease = 0.0f; 
 
 	// Grab using the correct methods.
 	switch (rotateMode)
 	{
 	case ERotationMode::Default:
-		CreateSceneComp(this, handRef->grabCollider->GetComponentLocation());
-
-		// If physics based grab the rotatable mesh with the hands grab handle.
-		if (grabMode == EGrabMode::Physics)
+		if (interactableSettings.twoHandedGrabbing && secondHandRef)
 		{
-			handRef->grabHandle->CreateJointAndFollowLocation(this, handRef->grabCollider, NAME_None, handRef->grabCollider->GetComponentLocation(), interactableSettings.physicsData);
+			// If physics based grab the rotatable mesh with the second hands grab handle.
+			if (grabMode == EGrabMode::Physics)
+			{
+				secondHandRef->grabHandle->CreateJointAndFollowLocation(this, secondHandRef->grabCollider, NAME_None, secondHandRef->grabCollider->GetComponentLocation(), interactableSettings.physicsData);
+				return;
+			}
+		}
+		else
+		{
+			CreateSceneComp(this, handRef->grabCollider->GetComponentLocation());
+
+			// If physics based grab the rotatable mesh with the hands grab handle.
+			if (grabMode == EGrabMode::Physics)
+			{
+				handRef->grabHandle->CreateJointAndFollowLocation(this, handRef->grabCollider, NAME_None, handRef->grabCollider->GetComponentLocation(), interactableSettings.physicsData);
+				return;
+			}
 		}
 	break;
 	case ERotationMode::Twist:
@@ -864,13 +996,13 @@ void URotatableStaticMesh::Grabbed_Implementation(class AVRHand* hand)
 		switch (rotateAxis)
 		{
 		case ERotateAxis::Pitch:
-			twistSceneLoc = GetComponentLocation() + (GetUpVector() * 100.0f);
+			twistSceneLoc = GetComponentLocation() + (parentComponent->GetForwardVector() * 100.0f);
 			break;
 		case ERotateAxis::Yaw:
-			twistSceneLoc = GetComponentLocation() + (GetRightVector() * 100.0f);
+			twistSceneLoc = GetComponentLocation() + (parentComponent->GetRightVector() * 100.0f);
 			break;
 		case ERotateAxis::Roll:
-			twistSceneLoc = GetComponentLocation() + (GetForwardVector() * 100.0f);
+			twistSceneLoc = GetComponentLocation() + (parentComponent->GetUpVector() * 100.0f);
 			break;
 		}
 		CreateSceneComp(handRef->controller, twistSceneLoc);
@@ -880,6 +1012,7 @@ void URotatableStaticMesh::Grabbed_Implementation(class AVRHand* hand)
 		if (grabMode == EGrabMode::Physics)
 		{
 			handRef->grabHandle->CreateJointAndFollowLocation(this, (UPrimitiveComponent*)grabScene, NAME_None, grabScene->GetComponentLocation(), interactableSettings.physicsData);
+			return;
 		}
 	}
 	break;
@@ -906,9 +1039,23 @@ void URotatableStaticMesh::Released_Implementation(AVRHand* hand)
 	// If physics based release the rotatable mesh from the hands grab handle.
 	if (grabMode == EGrabMode::Physics)
 	{
+		if (interactableSettings.twoHandedGrabbing)
+		{
+			if (secondHandRef == hand)
+			{
+				secondHandRef->grabHandle->DestroyJoint();
+				AVRHand* oldSecondHand = secondHandRef;
+				secondHandRef = nullptr;
+				firstRun = true;
+				OnRotatableReleased.Broadcast(oldSecondHand);
+				return;
+			}
+		}
+
+		// Destroy hand joint.
 		handRef->grabHandle->DestroyJoint();
 	}
-
+	
 	// Reset class variables.
 	AVRHand* oldHand = handRef;
 	handRef = nullptr;
