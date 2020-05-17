@@ -52,9 +52,11 @@ ATracedCar::ATracedCar()
 
 	// Setup default traced car variables.
 	maxForce = 40000.0f;
+	turningForce = 1.0f;
 	steeringWheelAlpha = 0.0f;
 	traceDebug = false;
 	handbreakEngaged = false;
+	visualiseSuspension = false;
 	isGrounded = false;
 	traceDistance = 40.0f;
 	traceDampening = 1.0f;
@@ -96,6 +98,12 @@ void ATracedCar::BeginPlay()
 	wheels.Add(backRightWheel);
 	wheelTraceParams.AddIgnoredActor(this);
 
+	// Add wheels to map.
+	wheelsMap.Add(frontLeftWheel, frontLeftWheelMesh);
+	wheelsMap.Add(frontRightWheel, frontRightWheelMesh);
+	wheelsMap.Add(backLeftWheel, backLeftWheelMesh);
+	wheelsMap.Add(backRightWheel, backRightWheelMesh);
+
 	// Ensure car body is simulating physics.
 	carBody->SetSimulatePhysics(true);
 	carBody->SetMassOverrideInKg(NAME_None, 28.0f);
@@ -135,16 +143,17 @@ void ATracedCar::UpdateCarTrace()
 			carBody->AddForceAtLocation(force, startLoc);
 
 			// Position wheel meshes wheel radius away from the hit location along the trace direction.
-
-
-
+			if (visualiseSuspension)
+			{
+				UStaticMeshComponent* currMesh = wheelsMap.FindOrAdd(wheelLoc);
+				currMesh->SetWorldLocation(wheelCenter);
+			}
 		}
-		else
+		else if (visualiseSuspension)
 		{
-			// Position wheel meshes at the end of the trace.
-
-
-
+			// Reset wheel position.
+			UStaticMeshComponent* currMesh = wheelsMap.FindOrAdd(wheelLoc);
+			currMesh->SetRelativeLocation(FVector::ZeroVector);
 		}
 
 		// If debug is enabled draw any important debug information about this trace before moving on.
@@ -172,13 +181,13 @@ void ATracedCar::TargetRotation()
 		float currentForwardVelocity = carBody->GetComponentRotation().UnrotateVector(carBody->GetPhysicsLinearVelocity()).X;
 		float max = FMath::Abs(currentForwardVelocity * 10000.0f);
 		float targetTorque = steeringWheelAlpha >= 0.0f ? FMath::Clamp(1000.0f * steeringWheelAlpha, 0.0f, max) : FMath::Clamp(1000.0f * steeringWheelAlpha, -max, 0.0f);
-		carBody->AddTorqueInDegrees(FVector(0.0f, 0.0f, targetTorque));
+		carBody->AddTorqueInDegrees(FVector(0.0f, 0.0f, targetTorque * turningForce));
 
 		// Add linear force at the front end of the car.
 		// Trying to straighten up while driving at an angle...
 		FVector wheelDiff = frontRightWheel->GetComponentLocation() - frontLeftWheel->GetComponentLocation();
 		FVector centerFrontAxel = frontLeftWheel->GetComponentLocation() + wheelDiff;
-		FVector force = carBody->GetRightVector() * (targetTorque / 1000.0f);
+		FVector force = carBody->GetRightVector() * (targetTorque / 1000.0f) * turningForce;
 		carBody->AddForceAtLocation(force, centerFrontAxel);
 
 		// If the hand break is engaged add force to the back of the car.
@@ -198,9 +207,10 @@ void ATracedCar::SetSteeringWheelAlpha(float newAlpha)
 	steeringWheelAlpha = newAlpha;
 
 	// Update wheel meshes rotations.
-
-
-
+	FRotator currentFrontLeftRotation = frontLeftWheelMesh->GetRelativeRotation();
+	frontLeftWheelMesh->SetRelativeRotation(FRotator(currentFrontLeftRotation.Pitch, (newAlpha / 100000) * 75.0f, currentFrontLeftRotation.Roll));
+	FRotator currentFrontRightRotation = frontRightWheelMesh->GetRelativeRotation();
+	frontRightWheelMesh->SetRelativeRotation(FRotator(currentFrontRightRotation.Pitch, (newAlpha / 100000) * 75.0f, currentFrontRightRotation.Roll));
 }
 
 void ATracedCar::SetHandbreakAlpha(float newAlpha)
@@ -218,13 +228,15 @@ void ATracedCar::UpdateCarMovement(float currentSpeed)
 		// Speed up and break the car depending on current car velocity.
 		FVector currentRelativeVelocity = carBody->GetComponentRotation().UnrotateVector(carBody->GetPhysicsLinearVelocity());
 		float currentForwardVelocity = carBody->GetComponentRotation().UnrotateVector(carBody->GetPhysicsLinearVelocity()).X;
+		float wheelRotationSpeed = -currentForwardVelocity / 300.0f;
 		if (currentSpeed > 0.0f)
 		{
 			float forwardForce = FMath::Clamp((currentSpeed * 1000.0f) - (currentForwardVelocity * traceDampening), 0.0f, BIG_NUMBER);
 			carBody->AddForce(forwardForce * carBody->GetForwardVector());
 
-			// Update wheel meshes rotations.
-			
+			// Update front wheel meshes rotations.
+			frontLeftWheelMesh->AddLocalRotation(FRotator(wheelRotationSpeed * 10.0f, 0.0f, 0.0f));
+			frontRightWheelMesh->AddLocalRotation(FRotator(wheelRotationSpeed * 10.0f, 0.0f, 0.0f));
 		}
 		else
 		{		
@@ -233,5 +245,9 @@ void ATracedCar::UpdateCarMovement(float currentSpeed)
 			float breakForceY = currentRelativeVelocity.Y >= 0.0f ? FMath::Clamp(sideBreakForce, -BIG_NUMBER, 0.0f) : FMath::Clamp(sideBreakForce, 0.0f, BIG_NUMBER);
 			carBody->AddForce(carBody->GetComponentRotation().RotateVector(FVector(breakForceX, breakForceY, 0.0f)));
 		}
+
+		// Update the back wheels.
+		backLeftWheelMesh->AddLocalRotation(FRotator(wheelRotationSpeed * 10.0f, 0.0f, 0.0f));
+		backRightWheelMesh->AddLocalRotation(FRotator(wheelRotationSpeed * 10.0f, 0.0f, 0.0f));
 	}
 }

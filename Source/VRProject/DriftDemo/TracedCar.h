@@ -63,6 +63,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Car")
 	TArray<USceneComponent*> wheels;
 
+	/** Array of wheels for getting static mesh from scene comps. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Car")
+	TMap<USceneComponent*, UStaticMeshComponent*> wheelsMap;
+
 	/** The location of a given wheel. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Car")
 	UStaticMesh* wheelMesh;
@@ -70,6 +74,10 @@ public:
 	/** Force that can be added to reposition the car. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Car", meta = (UIMin = "0.0", ClampMin = "0.0"))
 	float maxForce;
+
+	/** Amount of extra turning force to apply to the default turning force. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Car", meta = (UIMin = "0.0", ClampMin = "0.0"))
+	float turningForce;
 
 	/** The tracing distance for each wheel. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Car", meta = (UIMin = "0.0", ClampMin = "0.0"))
@@ -82,6 +90,10 @@ public:
 	/** Wheel radius. Radius of sphere trace for the wheels as wheel mesh is just a visual representation. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Car", meta = (UIMin = "0.0", ClampMin = "0.0"))
 	float wheelRadius;
+
+	/** Should the wheel meshes be updated on their position from the current suspension in the UpdateTrace function. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Car")
+	bool visualiseSuspension;
 
 	/** Debug the traces. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Car")
