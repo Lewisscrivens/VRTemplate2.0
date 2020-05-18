@@ -252,12 +252,13 @@ void USlidableStaticMesh::Grabbed_Implementation(AVRHand* hand)
 
 void USlidableStaticMesh::Released_Implementation(AVRHand* hand)
 {
-	// Call delegate for being grabbed.
-	OnMeshReleased.Broadcast(hand);
-	
 	// Delete variables.
+	AVRHand* oldHand = handRef;
 	interpolating = false;
 	handRef = nullptr;
+
+	// Call delegate for being released.
+	OnMeshReleased.Broadcast(oldHand);
 }
 
 void USlidableStaticMesh::Dragging_Implementation(float deltaTime)

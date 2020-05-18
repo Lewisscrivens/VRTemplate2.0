@@ -86,11 +86,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Slidable")
 	float currentPosition;
 
+	/** Interpolation enabled/disabled. */
+	UPROPERTY(BlueprintReadOnly, Category = "Slidable")
+	bool interpolating; 
+
 private:
 
 	FVector originalGrabLocation; /** The original relative grab offset from the hand to the slidable to prevent snapping on grab. */
 	float maxRelativeLoc, minRelativeLoc; /** The min and max relative location to use depending on settings, Calculated on begin play. */
-	bool interpolating; /** Interpolation enabled/disabled. */
 	float interpolationSpeed; /** The speed to interpolate at. */
 	float relativeInterpolationPos;	/** The relative location along the selected sliding axis to interpolate to if interpolateOnRelease it true. */
 

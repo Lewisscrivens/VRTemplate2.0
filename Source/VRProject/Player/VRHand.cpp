@@ -645,6 +645,7 @@ void AVRHand::UpdateTelekineticGrab()
 		{
 			if (AGrabbableActor* isGrabbable = Cast<AGrabbableActor>(sweepResult.Actor))
 			{
+				if (otherHand->objectInHand == isGrabbable) return;
 				lerpingGrabbable = isGrabbable;
 				lerpingGrabbable->grabbableMesh->SetCollisionProfileName("PhysicsActorOverlap");
 				FVector foundLocation = lerpingGrabbable->grabbableMesh->GetComponentLocation();
