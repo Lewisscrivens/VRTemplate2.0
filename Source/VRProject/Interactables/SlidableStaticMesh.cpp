@@ -75,8 +75,22 @@ void USlidableStaticMesh::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		break;
 		}
 
-		// Update Location and check if the interpolation is finished.
+		// Get current interpolation position over time.
 		FVector interpingLocation = FMath::VInterpTo(currentRelativeLocation, newLocation, DeltaTime, interpolationSpeed);
+		switch (currentAxis)
+		{
+		case ESlideAxis::X:
+			currentPosition = interpingLocation.X;
+			break;
+		case ESlideAxis::Y:
+			currentPosition = interpingLocation.Y;
+			break;
+		case ESlideAxis::Z:
+			currentPosition = interpingLocation.Z;
+			break;
+		}
+
+		// Apply new location and end when finished.
 		SetRelativeLocation(interpingLocation);
 		if (currentRelativeLocation == interpingLocation) interpolating = false;
  	}
@@ -235,6 +249,7 @@ void USlidableStaticMesh::SetSlidablePosition(float positionAlongAxis, bool inte
 		break;
 		}
 		SetRelativeLocation(newRelativeLocation);
+		currentPosition = positionAlongAxis;
 	}
 }
 

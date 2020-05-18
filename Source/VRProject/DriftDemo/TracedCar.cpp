@@ -208,9 +208,9 @@ void ATracedCar::SetSteeringWheelAlpha(float newAlpha)
 
 	// Update wheel meshes rotations.
 	FRotator currentFrontLeftRotation = frontLeftWheelMesh->GetRelativeRotation();
-	frontLeftWheelMesh->SetRelativeRotation(FRotator(currentFrontLeftRotation.Pitch, (newAlpha / 100000) * 75.0f, currentFrontLeftRotation.Roll));
+	frontLeftWheelMesh->SetRelativeRotation(FRotator(currentFrontLeftRotation.Pitch, (newAlpha / 100000) * 45.0f, currentFrontLeftRotation.Roll));
 	FRotator currentFrontRightRotation = frontRightWheelMesh->GetRelativeRotation();
-	frontRightWheelMesh->SetRelativeRotation(FRotator(currentFrontRightRotation.Pitch, (newAlpha / 100000) * 75.0f, currentFrontRightRotation.Roll));
+	frontRightWheelMesh->SetRelativeRotation(FRotator(currentFrontRightRotation.Pitch, (newAlpha / 100000) * 45.0f, currentFrontRightRotation.Roll));
 }
 
 void ATracedCar::SetHandbreakAlpha(float newAlpha)
