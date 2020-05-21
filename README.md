@@ -1,17 +1,24 @@
-# Introduction 
+# VRTemplate 2.0
 
-This is my Final year project for my university course. The project is research into the development of a 
-VR based template project with physics based interactions within Unreal Engine. Also how this template can be 
-used to then create a game, demo etc.
+Overview:
 
-NOTE: 
+An improvement on the hand and player classes from version one of my virtual reality template found at the following link:
 
-After working on my last virtual reality project I now have a good understanding of what to do and what not to do 
-when it comes to working with VR in Unreal Engine. This time I aim to get everything functioning through Unreal Engines
-physics engine as the problem in the last VR Template was that there were too many edge cases when it came to grabbing thing
-with collisions that are attached to other things etc. So my plan is to use joints, driven animations and other techniques
-that I beleive will be a better overall experience.
+https://github.com/Lewisscrivens/VRTemplate
 
-# Build and Test
+I also removed/improved code where nessasary such as the rotatable class supporting a wider range of different movements and the grabbable class 
+which has been simplified to only use physics grabbing as the hand was changed to be physics based also.
 
-To build or test this project for the best results use Unreal Engine 4.23.0 and Visual Studio 2017.
+NOTE: The template was developed using Unreal Engine 4.25 with the Valve index and SteamVR.
+
+Refferences:
+
+Colt 3D Model - https://sketchfab.com/3d-models/colt-1911-3e2bd907e96a4f49a297780e36315cf2
+
+Go-Kart Model - https://sketchfab.com/3d-models/go-kart-db54b705c0e546229fb43c55d7e7ad3f
+
+----------------------------------------------------------------------------------
+
+NOTE: Click the image bellow to find a video of the results of this template.
+
+[![logo](Images/WEAPONEXAMPLE.png)](https://youtu.be/-dicC_l63ew)
